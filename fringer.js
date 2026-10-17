@@ -151,6 +151,11 @@ function comb() {
                     knot.col--;
                 }
             });
+
+            //adjust cursor if necessary
+            if (cursorCol > i) {
+                cursorCol--;
+            }
         } else {
             //only increase i when we haven't deleted a rope
             i++;
