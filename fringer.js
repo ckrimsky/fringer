@@ -207,6 +207,8 @@ function pushDown () {
         knot.row--;
         if (knot.row < 0) {
             //GAME OVER!
+            console.log('set game over');
+
             gameRunning = false;
             drawGameOver();
             return;
@@ -269,6 +271,11 @@ function drawGameOver() {
 
 //draw full canvas
 function drawGame() {
+    //ropes drawn during game over are undefined
+    if (!gameRunning) {
+        return;
+    }
+
     //clear canvas
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -329,11 +336,6 @@ function drawGame() {
 
     //top right
     ctx.strokeText(level, canvas.width - 60, 50);
-
-    //draw game over text 
-    if (!gameRunning) {
-        drawGameOver();
-    }
 }
 
 // Handle keyboard input for cursor movement and twisting
