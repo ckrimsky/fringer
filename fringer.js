@@ -3,9 +3,9 @@ const ctx = canvas.getContext('2d');
 
 //rendering sizes
 const colWidth = 30;
-const rowHeight = 30;
+const rowHeight = 35;
 const ropeWidth = 6;
-const leftBuffer = 75;
+const leftBuffer = 100;
 
 const numRows = 15;
 
@@ -53,6 +53,10 @@ function initLevel(difficulty = 3, colors = ['#4E9EA3','#a42309', '#4E9EA3', '#4
     for (i = 0; i < difficulty; i++) {
         pushDown();
     }
+
+    //adjust cursor
+    cursorCol = 0;
+    cursorRow = findCursorRow(0);
 }
 
 //initialize new game
@@ -61,8 +65,6 @@ function newGame() {
     numBoosts = 3;
 
     initLevel();
-    cursorCol = 0;
-    cursorRow = findCursorRow(0);
 
     gameRunning = true;
 }
@@ -90,7 +92,8 @@ function twist() {
     } else {
         //remove knot. assume will only be on knot if cursor fits the knot's direction
         knots.splice(knoti, 1);
-        
+        //remove ropes if untied
+        comb();
     }
 
     //update cursor
@@ -98,7 +101,7 @@ function twist() {
     cursorRow = findCursorRow(cursorCol);
 }
 
-//remove straight ropes
+//remove straight ropes. advance level if no more ropes
 function comb() {
     let i = 0;
     while (i < ropes.length) {
@@ -123,6 +126,18 @@ function comb() {
             i++;
         }
     }
+
+    //level complete!
+    if (knots.length == 0 && ropes.length == 0) {
+        level++;
+        initLevel();
+    } else {
+        //adjust cursor col if ropes have been removed but still exist
+        cursorCol = Math.min(cursorCol, ropes.length - 2);
+        cursorRow = findCursorRow(cursorCol);
+    }
+
+    drawGame();
 }
 
 //use a boost to change cursor direction without twisting
@@ -194,6 +209,7 @@ function pushDown () {
             //GAME OVER!
             gameRunning = false;
             drawGameOver();
+            return;
         }
     });
 
@@ -235,6 +251,10 @@ function pushDown () {
             i += 2;
         }
     }
+
+    //adjust cursor row
+    cursorRow = findCursorRow(cursorCol);
+    drawGame();
 }
 
 //draws the "Game Over" text
@@ -359,28 +379,12 @@ document.addEventListener('keydown', (event) => {
 //game loop to move down knots 
 function gameLoop() {
     if (gameRunning) {
-        //remove straight ropes
+        //remove straight ropes and advance level
         comb();
-        drawGame();
 
-        //level complete!
-        if (knots.length == 0 && ropes.length == 0) {
-            level++;
-            initLevel();
-        }
-
+        //push down knots and check if game over
         pushDown();
-
-        //check again if game over after pushing down
-        if (gameRunning) {
-            //adjust cursor col if ropes have been removed
-            cursorCol = Math.min(cursorCol, ropes.length - 2);
-            cursorRow = findCursorRow(cursorCol);
-            drawGame();
-        }
     }
-    
-    //TODO: check if level/game won
 }
 
 //initialize game-- default for now
