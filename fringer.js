@@ -9,6 +9,9 @@ const leftBuffer = 100;
 
 const numRows = 15;
 
+//define each color's hex code
+const colorCodes = {'blue': '#4e9ea3', 'red':'#a42309'};
+
 //cursor
 let cursorCol = 0;
 let cursorRow = 0;
@@ -17,7 +20,7 @@ let cursorLeft = true; //true is left, false is right
 //game state
 let gameRunning = true;
 let numBoosts = 3;
-let level = 1;
+let level = 0;
 
 let ropes = [];
 let knots = [];
@@ -37,20 +40,47 @@ function initSmall() {
     ];
 }
 
+//built-in game levels
+const levels = [
+    {difficulty: 3, colors: [{color: 'blue', ropes: 11}, {color: 'red', ropes: 1}]},
+    {difficulty: 3, colors: [{color: 'blue', ropes: 10}, {color: 'red', ropes: 2}]}
+];
+const defaultLevel = {difficulty: 4, colors: [{color: 'blue', ropes: 10}, {color: 'red', ropes: 3}]};
+
 //initializes a level with ropes of the input colors
-function initLevel(difficulty = 3, colors = ['#4E9EA3','#a42309', '#4E9EA3', '#4E9EA3', '#4E9EA3', '#a42309', '#4E9EA3', '#4E9EA3']) {
+function initLevel() {
     ropes = [];
     knots = [];
 
-    //initialize ropes
-    let i = 0;
-    colors.forEach(color => {
-        ropes.push({color: color, path: Array(numRows).fill(0), endCol: i});
-        i++;
+    //default settings
+    let difficulty = defaultLevel.difficulty;
+    let colors = defaultLevel.colors;
+
+    //if in defined level, do that
+    if (level < levels.length) {
+        difficulty = levels[level].difficulty;
+        colors = levels[level].colors;
+    }
+
+    //make list containing correct amount of each hex code
+    let unscrambled = [];
+    colors.forEach(c => {
+        for (let n = 0; n < c.ropes; n++) {
+            unscrambled.push(colorCodes[c.color]);
+        }
     });
 
+    //randomize order of colored ropes
+    let col = 0;
+    while(unscrambled.length > 0) {
+        let i = Math.floor(Math.random() * unscrambled.length);
+        ropes.push({color: unscrambled[i], path: Array(numRows).fill(0), endCol: col});
+        unscrambled.splice(i, 1);
+        col++;
+    }
+
     //add knots
-    for (i = 0; i < difficulty; i++) {
+    for (let i = 0; i < difficulty; i++) {
         pushDown();
     }
 
@@ -335,7 +365,7 @@ function drawGame() {
     ctx.strokeStyle = 'white';
 
     //top right
-    ctx.strokeText(level, canvas.width - 60, 50);
+    ctx.strokeText(level+1, canvas.width - 60, 50); //visible level indexes from 1
 }
 
 // Handle keyboard input for cursor movement and twisting
