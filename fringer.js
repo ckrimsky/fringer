@@ -381,21 +381,39 @@ document.addEventListener('keydown', (event) => {
     }
     if (gameRunning) { //don't accept input after gameover
         if (event.key === 'ArrowLeft') {
-            let newCol = Math.max(0, cursorCol - 1);
-            let newRow = findCursorRow(newCol);
-            
-            //don't let cursor have negative row
-            if (newRow >= 0) {
+            let newCol = cursorCol;
+            let newRow = -1;
+
+            //don't let cursor have negative row-- skip to column where it doesn't or don't move
+            while (newRow < 0) {
+                newCol--;
+                if (newCol < 0) { //reached left side: we don't move
+                    break;
+                }
+                newRow = findCursorRow(newCol);
+            }
+
+            //move cursor if valid column
+            if (newCol >= 0) {
                 cursorCol = newCol;
                 cursorRow = newRow;
             }
 
         } else if (event.key === 'ArrowRight') {
-            let newCol = Math.min(ropes.length - 2, cursorCol + 1);
-            let newRow = findCursorRow(newCol);
+            let newCol = cursorCol;
+            let newRow = -1;
             
-            //don't let cursor have negative row
-            if (newRow >= 0) {
+            //don't let cursor have negative row-- skip to column where it doesn't or don't move
+            while (newRow < 0) {
+                newCol++;
+                if (newCol > ropes.length - 2) { //reached right side: we don't move
+                    break;
+                }
+                newRow = findCursorRow(newCol);
+            }
+
+            //move cursor if valid column
+            if (newCol <= ropes.length - 2) {
                 cursorCol = newCol;
                 cursorRow = newRow;
             }
