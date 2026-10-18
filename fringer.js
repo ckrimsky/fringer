@@ -5,8 +5,6 @@ const ctx = canvas.getContext('2d');
 const colWidth = 30;
 const rowHeight = 35;
 const ropeWidth = 6;
-const leftBuffer = 100;
-
 const numRows = 15;
 
 //define each color's hex code
@@ -25,8 +23,8 @@ let level = 0;
 let ropes = [];
 let knots = [];
 
-//indexing from bottom. 0 is straight, -1 is left, 1 is right
-//index in ropes array is the rope number from left
+//rope.path indexes from bottom of screen. 
+//0 is straight, -1 is left, 1 is right
 
 //example small game with one knot for debugging
 function initSmall() {
@@ -185,8 +183,10 @@ function useBoost () {
 
 //Caclulate X position on canvas
 function coltoX(col) {
-    //TODO: center game
-    return leftBuffer + col * colWidth;
+    //ropes are centered--find left edge based on number of ropes
+    let leftEdge = (canvas.width - ((ropes.length - 1) * colWidth))/2;
+
+    return leftEdge + col * colWidth;
 }
 
 //calculate Y position on canvas
@@ -296,12 +296,16 @@ function pushDown () {
 
 //draws the "Game Over" text
 function drawGameOver() {
-    ctx.font = "50px Courier New";
-    ctx.strokeStyle = 'red';
+    //black bar for text to go over
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, canvas.height/2 - 60, canvas.width, 80);
 
-    //center text
-    var textWidth = ctx.measureText("GAME OVER").width
-    ctx.strokeText("GAME OVER", canvas.width/2 - textWidth/2, canvas.height/2);
+    //red text
+    ctx.font = "bold 60px Courier New";
+    ctx.fillStyle = colorCodes['red'];
+    ctx.textAlign = 'center';
+
+    ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
 }
 
 //draw full canvas
@@ -333,7 +337,7 @@ function drawGame() {
         }
     }
 
-    //draw knots
+    //draw top rope of each knot
     knots.forEach(knot => {
         ctx.beginPath();
         ctx.lineWidth = ropeWidth;
@@ -365,12 +369,25 @@ function drawGame() {
     }
     ctx.stroke();
 
-    //draw current level
-    ctx.font = "20px Courier New";
+    //draw loom (line at top of ropes)
+    ctx.beginPath();
+    ctx.lineWidth = 2;
     ctx.strokeStyle = 'white';
+    ctx.moveTo(100, 75);
+    ctx.lineTo(canvas.width-100, 75);
+    ctx.stroke();    
 
-    //top right
-    ctx.strokeText(level+1, canvas.width - 60, 50); //visible level indexes from 1
+    //all text in this style
+    ctx.font = "20px Courier New";
+    ctx.fillStyle = 'white';
+
+    //level top rightq
+    ctx.textAlign = 'left';
+    ctx.fillText('Level:', canvas.width - 150, 50);
+    ctx.stroke();
+    ctx.textAlign = 'right';
+    ctx.fillText(level+1, canvas.width - 40, 50); //visible level indexes from 1
+    ctx.stroke();
 }
 
 // Handle keyboard input for cursor movement and twisting

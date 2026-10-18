@@ -16,4 +16,11 @@ p {
     background-color: #d5d5d5;
     width: 500px;
     padding: 10px;
+    box-sizing: border-box;
+}
+
+@media screen and (max-width: 600px) {
+    p {
+        width: 100%; /* The width is 100%, when the viewport is 800px or smaller */
+    }
 }
