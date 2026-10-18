@@ -7,8 +7,8 @@ const rowHeight = 35;
 const ropeWidth = 6;
 const numRows = 15;
 
-//define each color's hex code
-const colorCodes = {'blue': '#4e9ea3', 'red':'#a42309'};
+//define rope colors (most --> least common)
+const colorCodes = ['#4e9ea3', '#8b1a03', '#547e11', '#d5b344', '#642e84'];
 
 //cursor
 let cursorCol = 0;
@@ -41,12 +41,68 @@ function initSmall() {
     ];
 }
 
-//built-in game levels
+//levels from the original fringer game (which groups them in 3s)
+//colors: index indicates color, value indicates number of ropes with that color
+//TODO: levels difficulty is scaled to expect increasing push frequency
 const levels = [
-    {difficulty: 3, colors: [{color: 'blue', ropes: 11}, {color: 'red', ropes: 1}]},
-    {difficulty: 3, colors: [{color: 'blue', ropes: 10}, {color: 'red', ropes: 2}]}
+    //level 1 = 1-1
+    {difficulty: 6, colors: [11, 1]},
+    //level 2 = 1-2
+    {difficulty: 6, colors: [10, 1, 1]},
+    //level 3 = 1-3
+    {difficulty: 6, colors: [9, 2, 2]},
+    //level 4 = 2-1
+    {difficulty: 8, colors: [7, 4, 1]},
+    //level 5 = 2-2
+    {difficulty: 7, colors: [8, 2, 1, 1]},
+    //level 6 = 2-3
+    {difficulty: 6, colors: [7, 3, 1, 1]},
+    //level 7 = 3-1
+    {difficulty: 8, colors: [6, 5, 1]},
+    //level 8 = 3-2
+    {difficulty: 7, colors: [7, 2, 2, 1]},
+    //level 9 = 3-3
+    {difficulty: 6, colors: [6, 4, 1, 1]},
+    //level 10 = 4-1
+    {difficulty: 8, colors: [6, 3, 2, 1]},
+    //level 11 = 4-2
+    {difficulty: 7, colors: [8, 2, 2]},
+    //level 12 = 4-3
+    {difficulty: 6, colors: [7, 3, 2]},
+    //level 13 = 5-1
+    {difficulty: 8, colors: [6, 4, 2]},
+    //level 14 = 5-2
+    {difficulty: 7, colors: [5, 5, 1, 1]},
+    //level 15 = 5-3
+    {difficulty: 6, colors: [6, 2, 2, 2]},
+    //level 16 = 6-1
+    {difficulty: 8, colors: [5, 4, 3]},
+    //level 17 = 6-2
+    {difficulty: 7, colors: [5, 4, 3]},
+    //level 18 = 6-3
+    {difficulty: 6, colors: [5, 3, 2, 2]},
+    //level 19 = 7-1
+    {difficulty: 8, colors: [4, 4, 2, 2]},
+    //level 20 = 7-2
+    {difficulty: 7, colors: [4, 3, 3, 2]},
+    //level 21 = 7-3
+    {difficulty: 6, colors: [3, 3, 3, 3]},
+    //level 22 = 8-1
+    {difficulty: 8, colors: [5, 2, 2, 2, 1]},
+    //level 23 = 8-2
+    {difficulty: 7, colors: [5, 2, 2, 2, 1]},
+    //level 24 = 8-3
+    {difficulty: 6, colors: [4, 3, 2, 2, 1]},
+    //level 25 = 9-1
+    {difficulty: 8, colors: [4, 3, 2, 2, 1]},
+    //level 26 = 9-2
+    {difficulty: 7, colors: [4, 3, 2, 2, 1]},
+    //level 27 = 9-3
+    {difficulty: 6, colors: [3, 3, 2, 2, 2]}
 ];
-const defaultLevel = {difficulty: 4, colors: [{color: 'blue', ropes: 10}, {color: 'red', ropes: 3}]};
+
+//bonus levels from the original game have same base with increasing push freq
+const defaultLevel = {difficulty: 9, colors: [4, 3, 2, 2, 1]};
 
 //initializes a level with ropes of the input colors
 function initLevel() {
@@ -65,11 +121,12 @@ function initLevel() {
 
     //make list containing correct amount of each hex code
     let unscrambled = [];
-    colors.forEach(c => {
-        for (let n = 0; n < c.ropes; n++) {
-            unscrambled.push(colorCodes[c.color]);
+    for (let i = 0; i < colors.length; i++) {
+        //colorCodes[i] is the rope's hex color, colors[i] is number of ropes of that color
+        for (let n = 0; n < colors[i]; n++) {
+            unscrambled.push(colorCodes[i]);
         }
-    });
+    }
 
     //randomize order of colored ropes
     let col = 0;
@@ -513,8 +570,7 @@ function drawSparkles() {
             ctx.beginPath();
             ctx.fillStyle = 'white';
             ctx.strokeStyle = 'white';
-            // 1 -> 1.5 , 2 -> 2, 3 -> 2.5
-            ctx.lineWidth = knot.sparkles/2 + 1;
+            ctx.lineWidth = 2;
 
             let centerX = coltoX(knot.col) + colWidth/2;
             let centerY = rowtoY(knot.row) - rowHeight/2;
@@ -641,5 +697,5 @@ drawPause('Press space to begin game');
 //push down every 6s
 setInterval(gameLoop, 6000);
 
-
+//TODO: original game starts with bar every 6s but lowers interval as level increases
 
