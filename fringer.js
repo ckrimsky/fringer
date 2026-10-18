@@ -18,7 +18,8 @@ let cursorLeft = true; //true is left, false is right
 //game state
 let gameRunning = false; //if game is not paused
 let gameOver = false; //if game is lost
-let numBoosts = 3;
+let numBoosts = 0;
+const maxBoosts = 10;
 let level = 0;
 let score = 0;
 
@@ -36,7 +37,7 @@ function initSmall() {
         {color: 'blue', path: [0, 0, 0, 0, 0], endCol: 2}
     ];
     knots = [
-        {col: 0, row: 3, direction: 'left', topColor: 'red'}
+        {col: 0, row: 3, direction: 'left', topColor: 'red', sparkles: 0}
     ];
 }
 
@@ -113,17 +114,21 @@ function twist() {
     ropes[cursorCol + 1].path[cursorRow]--;
 
     //check if cursor on a knot
-    let knoti = knots.findIndex(knot => knot.col === cursorCol && knot.row === cursorRow);
-    if (knoti === -1) {
+    let i = knots.findIndex(knot => knot.col === cursorCol && knot.row === cursorRow);
+    if ( i === -1) {
         //if ropes are the same color, knot has no direction and can be untwisted from either position
         let knotDir = ropes[cursorCol].color == ropes[cursorCol+1].color ? 'both' : cursorLeft ? 'right' : 'left';
         
         //add knot. if cursor is left the right rope is on top
-        knots.push({col: cursorCol, row: cursorRow, direction: knotDir, topColor: (cursorLeft ? ropes[cursorCol].color : ropes[cursorCol + 1].color)});
+        knots.push({col: cursorCol, row: cursorRow, direction: knotDir, topColor: (cursorLeft ? ropes[cursorCol].color : ropes[cursorCol + 1].color), sparkles: 0});
 
     } else {
+        //add boost if relevant
+        if (knots[i].sparkles > 0) {
+            numBoosts = Math.min(numBoosts + 1, maxBoosts);
+        }
         //remove knot. assume will only be on knot if cursor fits the knot's direction
-        knots.splice(knoti, 1);
+        knots.splice(i, 1);
         //remove ropes if untied
         comb();
     }
@@ -240,7 +245,6 @@ function findCursorRow(col) {
 //pushes down all the knots & forms new ones at the top
 //game over if a knot reaches the bottom
 function pushDown () {
-    //console.log('pushDown');
     //remove first segment from each rope's path
     ropes.forEach(rope => {
         rope.path.shift();
@@ -290,7 +294,7 @@ function pushDown () {
                 var knotColor = leftRope.color;
             }
 
-            let newKnot = {col: i, row: numRows - 1, direction: knotDir, topColor: knotColor};
+            let newKnot = {col: i, row: numRows - 1, direction: knotDir, topColor: knotColor, sparkles: 0};
             knots.push(newKnot);
 
             //advance over both ropes
@@ -300,7 +304,6 @@ function pushDown () {
 
     //adjust cursor row
     cursorRow = findCursorRow(cursorCol);
-    drawGame();
 }
 
 //draws the "Game Over" text
@@ -340,11 +343,12 @@ function drawGame() {
         ctx.strokeStyle = ropes[rope].color;
         ctx.lineWidth = ropeWidth;
 
+        //start drawing at bottom of rope
+        ctx.moveTo(coltoX(rope), rowtoY(0));
+
         //starting col is the rope number
         let col = rope; 
         for (let row = 0; row < numRows; row++) {
-            ctx.moveTo(coltoX(col), rowtoY(row));
-
             //ending col modified by direction of rope at this row
             col += ropes[rope].path[row];
             ctx.lineTo(coltoX(col), rowtoY(row + 1));
@@ -354,22 +358,52 @@ function drawGame() {
 
     //draw top rope of each knot
     knots.forEach(knot => {
+        //start & end points depend on knot dir
+        let startPt = [];
+        let endPt = [];
+
+        //black line must be shorter to avoid overlap with other segments
+        let blackStartPt = [];
+        let blackEndPt = [];
+
+        if (knot.direction === 'left') {
+            //top rope is the right one
+            startPt = [coltoX(knot.col + 1), rowtoY(knot.row)];
+            endPt = [coltoX(knot.col), rowtoY(knot.row + 1)];
+
+            blackStartPt = [coltoX(knot.col + 0.75), rowtoY(knot.row + 0.25)];
+            blackEndPt = [coltoX(knot.col + 0.25), rowtoY(knot.row + 0.75)];
+        }
+        else if (knot.direction === 'right') {
+            //top rope is the left one
+            startPt = [coltoX(knot.col), rowtoY(knot.row)];
+            endPt = [coltoX(knot.col + 1), rowtoY(knot.row + 1)];
+            
+            blackStartPt = [coltoX(knot.col + 0.25), rowtoY(knot.row + 0.25)];
+            blackEndPt = [coltoX(knot.col + 0.75), rowtoY(knot.row + 0.75)];
+        } else {
+            return;
+        }
+
+        //draw larger black line underneath to leave shadow
+        ctx.beginPath();
+        ctx.lineWidth = ropeWidth*2;
+        ctx.strokeStyle = 'black';
+        ctx.moveTo(blackStartPt[0], blackStartPt[1]);
+        ctx.lineTo(blackEndPt[0], blackEndPt[1]);
+        ctx.stroke();
+
+        //now the upper rope
         ctx.beginPath();
         ctx.lineWidth = ropeWidth;
         ctx.strokeStyle = knot.topColor;
-
-        if (knot.direction == 'left') {
-            //top rope is the right one
-            ctx.moveTo(coltoX(knot.col + 1), rowtoY(knot.row));
-            ctx.lineTo(coltoX(knot.col), rowtoY(knot.row + 1));
-        }
-        else if (knot.direction == 'right') {
-            //top rope is the left one
-            ctx.moveTo(coltoX(knot.col), rowtoY(knot.row));
-            ctx.lineTo(coltoX(knot.col + 1), rowtoY(knot.row + 1));
-        }
+        ctx.moveTo(startPt[0], startPt[1]);
+        ctx.lineTo(endPt[0], endPt[1]);
         ctx.stroke();
     });
+
+    //draw sparkles on each knot if relevant
+    drawSparkles();
 
     //draw cursor
     ctx.beginPath();
@@ -394,7 +428,7 @@ function clearCanvas() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-//draws the loom, level, etc
+//draws the loom, level, score, boosts
 function drawLoomAndText() {
     //draw loom (line at top of ropes)
     ctx.beginPath();
@@ -421,6 +455,25 @@ function drawLoomAndText() {
     ctx.fillText('Score:', 40, 50);
     ctx.textAlign = 'right';
     ctx.fillText(score, 200, 50);
+
+    //draw boosts as circles along the sides of the ropes
+    for (let i = 0; i < numBoosts; i++) {
+        let xval = 0;
+
+        //even numbered boosts drawn on left, odd on right
+        if (i%2 == 0) {
+            xval = coltoX(0) - 2 * colWidth;
+        } else {
+            xval = coltoX(ropes.length - 1) + 2 * colWidth;
+        }
+
+        let yval = 100 + rowHeight * Math.floor(i/2);
+
+        ctx.beginPath();
+        ctx.fillStyle = 'white';
+        ctx.arc(xval, yval, 5, 0, 2 * Math.PI);
+        ctx.fill();
+    }
 }
 
 //draw pause menu: current level info and input message
@@ -435,6 +488,49 @@ function drawPause(message) {
 
     ctx.fillText(message, canvas.width/2, canvas.height/2);
 }
+
+//update sparkles for each knot: if none, add randomly
+//sparkles last for 3 pushes down
+function updateSparkles() {
+    knots.forEach(knot => {
+        if (knot.sparkles == 0) {
+            //no sparkles: add with 5% prob
+            if (Math.random() < 0.05) {
+                knot.sparkles = 3;
+            }
+        } else {
+            //otherwise count down
+            knot.sparkles--;
+        }
+    });
+}
+
+//draws sparkles on knots that have them
+//sparkles are two circles 
+function drawSparkles() {
+    knots.forEach(knot => {
+        if (knot.sparkles > 0) {
+            ctx.beginPath();
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'white';
+            // 1 -> 1.5 , 2 -> 2, 3 -> 2.5
+            ctx.lineWidth = knot.sparkles/2 + 1;
+
+            let centerX = coltoX(knot.col) + colWidth/2;
+            let centerY = rowtoY(knot.row) - rowHeight/2;
+
+            //left is larger
+            ctx.arc(centerX - 7, centerY, (knot.sparkles+1)*1.5, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            //right is slightly upwards
+            ctx.beginPath();
+            ctx.arc(centerX + 7, centerY - 3, knot.sparkles+1, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+    });
+}
+
 
 //moves the cursor to the next leftwards open column or stays in place
 function moveLeft() {
@@ -484,16 +580,18 @@ document.addEventListener('keydown', (event) => {
         //new game!
         newGame();
     }
-    if (gameRunning) { //don't accept input after gameover
+    if (event.key === 'Tab' || event.key === ' ' || event.key === 'ArrowDown' || event.key === 'ArrowUp' ) {
+        event.preventDefault(); //prevent default behavior
+    }
+
+    if (gameRunning) { //game input while running
         if (event.key === 'ArrowLeft') {
             moveLeft();
         } else if (event.key === 'ArrowRight') {
             moveRight();
-        } else if (event.key === ' ') {
-            event.preventDefault(); // Prevent default spacebar behavior
+        } else if (event.key === ' ' || event.key === 'x') {
             twist();
-        } else if (event.key === 'Tab') {   
-            event.preventDefault(); // Prevent default tab behavior
+        } else if (event.key === 'Tab' || event.key === 'ArrowDown') {
             useBoost();
             //switching direction may cause cursor to go up
             cursorRow = findCursorRow(cursorCol);
@@ -501,7 +599,6 @@ document.addEventListener('keydown', (event) => {
             gameRunning = false;
             drawPause('Press space to resume game');
         }
-
         drawGame();
     } else if (!gameOver) {
         //game is paused-- press space to start
@@ -511,7 +608,9 @@ document.addEventListener('keydown', (event) => {
         }
     } else {
         //game is over-- press space to start new game
-        newGame();
+        if (event.key === ' ') {
+            newGame();
+        }
     }
 });
 
@@ -524,6 +623,10 @@ function gameLoop() {
 
         //push down knots and check if game over
         pushDown();
+
+        updateSparkles();
+
+        drawGame();
     }
 }
 
