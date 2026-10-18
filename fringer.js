@@ -20,6 +20,7 @@ let gameRunning = false; //if game is not paused
 let gameOver = false; //if game is lost
 let numBoosts = 3;
 let level = 0;
+let score = 0;
 
 let ropes = [];
 let knots = [];
@@ -92,6 +93,7 @@ function initLevel() {
 function newGame() {
     level = 0;
     numBoosts = 3;
+    score = 0;
 
     initLevel();
 
@@ -137,6 +139,11 @@ function comb() {
     while (i < ropes.length) {
         //ropes are straight when every element is 0
         if (ropes[i].path.every(e => e == 0)) {
+            //increase score
+            //TODO: different scores for different ropes?
+            score += 20;
+
+            //remove rope
             ropes.splice(i, 1);
 
             //every rope after the deleted rope must recalculate end col
@@ -165,6 +172,7 @@ function comb() {
     //level complete!
     if (knots.length == 0 && ropes.length == 0) {
         level++;
+        score += 100;
         initLevel();
     } else {
         //adjust cursor col if ropes have been removed but still exist
@@ -402,11 +410,17 @@ function drawLoomAndText() {
 
     //level top right
     ctx.textAlign = 'left';
-    ctx.fillText('Level:', canvas.width - 150, 50);
-    ctx.stroke();
+    ctx.fillText('Level:', canvas.width - 175, 50);
+    //ctx.stroke();
     ctx.textAlign = 'right';
     ctx.fillText(level+1, canvas.width - 40, 50); //visible level indexes from 1
-    ctx.stroke();
+    //ctx.stroke();
+
+    //score top left
+    ctx.textAlign = 'left';
+    ctx.fillText('Score:', 40, 50);
+    ctx.textAlign = 'right';
+    ctx.fillText(score, 200, 50);
 }
 
 //draw pause menu: current level info and input message
