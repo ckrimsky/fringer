@@ -16,7 +16,8 @@ let cursorRow = 0;
 let cursorLeft = true; //true is left, false is right
 
 //game state
-let gameRunning = true;
+let gameRunning = false; //if game is not paused
+let gameOver = false; //if game is lost
 let numBoosts = 3;
 let level = 0;
 
@@ -89,12 +90,13 @@ function initLevel() {
 
 //initialize new game
 function newGame() {
-    level = 1;
+    level = 0;
     numBoosts = 3;
 
     initLevel();
 
     gameRunning = true;
+    gameOver = false;
 }
 
 //twists the two ropes under the cursor and adds/removes a knot if necessary
@@ -242,9 +244,8 @@ function pushDown () {
         knot.row--;
         if (knot.row < 0) {
             //GAME OVER!
-            console.log('set game over');
-
             gameRunning = false;
+            gameOver = true;
             drawGameOver();
             return;
         }
@@ -298,7 +299,7 @@ function pushDown () {
 function drawGameOver() {
     //black bar for text to go over
     ctx.fillStyle = 'black';
-    ctx.fillRect(0, canvas.height/2 - 60, canvas.width, 80);
+    ctx.fillRect(0, canvas.height/2 - 60, canvas.width, 120);
 
     //red text
     ctx.font = "bold 60px Courier New";
@@ -306,6 +307,13 @@ function drawGameOver() {
     ctx.textAlign = 'center';
 
     ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
+
+    //white instruction text
+    ctx.font = '25px Courier New';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+
+    ctx.fillText('Press space to begin a new game', canvas.width/2, canvas.height/2 + 40);
 }
 
 //draw full canvas
@@ -316,8 +324,7 @@ function drawGame() {
     }
 
     //clear canvas
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    clearCanvas();
 
     //draw each rope
     for (let rope = 0; rope < ropes.length; rope++) {
@@ -369,6 +376,18 @@ function drawGame() {
     }
     ctx.stroke();
 
+    //display text
+    drawLoomAndText();
+}
+
+function clearCanvas() {
+    //fill full canvas with black
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+//draws the loom, level, etc
+function drawLoomAndText() {
     //draw loom (line at top of ropes)
     ctx.beginPath();
     ctx.lineWidth = 2;
@@ -378,10 +397,10 @@ function drawGame() {
     ctx.stroke();    
 
     //all text in this style
-    ctx.font = "20px Courier New";
+    ctx.font = '20px Courier New';
     ctx.fillStyle = 'white';
 
-    //level top rightq
+    //level top right
     ctx.textAlign = 'left';
     ctx.fillText('Level:', canvas.width - 150, 50);
     ctx.stroke();
@@ -390,7 +409,62 @@ function drawGame() {
     ctx.stroke();
 }
 
-// Handle keyboard input for cursor movement and twisting
+//draw pause menu: current level info and input message
+function drawPause(message) {
+    clearCanvas();
+    drawLoomAndText();
+
+    //larger font than level 
+    ctx.font = '30px Courier New';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+
+    ctx.fillText(message, canvas.width/2, canvas.height/2);
+}
+
+//moves the cursor to the next leftwards open column or stays in place
+function moveLeft() {
+    let newCol = cursorCol;
+    let newRow = -1;
+
+    //don't let cursor have negative row-- skip to column where it doesn't or don't move
+    while (newRow < 0) {
+        newCol--;
+        if (newCol < 0) { //reached left side: we don't move
+            break;
+        }
+        newRow = findCursorRow(newCol);
+    }
+
+    //move cursor if valid column
+    if (newCol >= 0) {
+        cursorCol = newCol;
+        cursorRow = newRow;
+    }
+}
+
+//moves the cursor to the next rightwards open column or stays in place
+function moveRight() {
+    let newCol = cursorCol;
+    let newRow = -1;
+    
+    //don't let cursor have negative row-- skip to column where it doesn't or don't move
+    while (newRow < 0) {
+        newCol++;
+        if (newCol > ropes.length - 2) { //reached right side: we don't move
+            break;
+        }
+        newRow = findCursorRow(newCol);
+    }
+
+    //move cursor if valid column
+    if (newCol <= ropes.length - 2) {
+        cursorCol = newCol;
+        cursorRow = newRow;
+    }
+}
+
+//handle keyboard input
 document.addEventListener('keydown', (event) => {
     if (event.key === 'n') {
         //new game!
@@ -398,42 +472,9 @@ document.addEventListener('keydown', (event) => {
     }
     if (gameRunning) { //don't accept input after gameover
         if (event.key === 'ArrowLeft') {
-            let newCol = cursorCol;
-            let newRow = -1;
-
-            //don't let cursor have negative row-- skip to column where it doesn't or don't move
-            while (newRow < 0) {
-                newCol--;
-                if (newCol < 0) { //reached left side: we don't move
-                    break;
-                }
-                newRow = findCursorRow(newCol);
-            }
-
-            //move cursor if valid column
-            if (newCol >= 0) {
-                cursorCol = newCol;
-                cursorRow = newRow;
-            }
-
+            moveLeft();
         } else if (event.key === 'ArrowRight') {
-            let newCol = cursorCol;
-            let newRow = -1;
-            
-            //don't let cursor have negative row-- skip to column where it doesn't or don't move
-            while (newRow < 0) {
-                newCol++;
-                if (newCol > ropes.length - 2) { //reached right side: we don't move
-                    break;
-                }
-                newRow = findCursorRow(newCol);
-            }
-
-            //move cursor if valid column
-            if (newCol <= ropes.length - 2) {
-                cursorCol = newCol;
-                cursorRow = newRow;
-            }
+            moveRight();
         } else if (event.key === ' ') {
             event.preventDefault(); // Prevent default spacebar behavior
             twist();
@@ -442,8 +483,21 @@ document.addEventListener('keydown', (event) => {
             useBoost();
             //switching direction may cause cursor to go up
             cursorRow = findCursorRow(cursorCol);
+        } else if (event.key === 'p') {
+            gameRunning = false;
+            drawPause('Press space to resume game');
         }
+
         drawGame();
+    } else if (!gameOver) {
+        //game is paused-- press space to start
+        if (event.key === ' ') {
+            gameRunning = true;
+            drawGame();
+        }
+    } else {
+        //game is over-- press space to start new game
+        newGame();
     }
 });
 
@@ -463,10 +517,12 @@ function gameLoop() {
 initLevel();
 //set correct row at start
 cursorRow = findCursorRow(cursorCol);
-drawGame();
 
-//push down every 7s
-setInterval(gameLoop, 7000);
+//game starts in paused state 
+drawPause('Press space to begin game');
+
+//push down every 6s
+setInterval(gameLoop, 6000);
 
 
 
