@@ -171,10 +171,10 @@ function twist() {
     ropes[cursorCol + 1].path[cursorRow]--;
 
     //check if cursor on a knot
-    let i = knots.findIndex(knot => knot.col === cursorCol && knot.row === cursorRow);
+    let i = knots.findIndex(knot => knot.col == cursorCol && knot.row == cursorRow);
     if ( i === -1) {
         //if ropes are the same color, knot has no direction and can be untwisted from either position
-        let knotDir = ropes[cursorCol].color == ropes[cursorCol+1].color ? 'both' : cursorLeft ? 'right' : 'left';
+        let knotDir = ropes[cursorCol].color === ropes[cursorCol+1].color ? 'both' : cursorLeft ? 'right' : 'left';
         
         //add knot. if cursor is left the right rope is on top
         knots.push({col: cursorCol, row: cursorRow, direction: knotDir, topColor: (cursorLeft ? ropes[cursorCol].color : ropes[cursorCol + 1].color), sparkles: 0});
@@ -269,11 +269,11 @@ function rowtoY(row) {
 
 //returns true if curser matches input knot direction
 function directionMatches(dir) {
-    if (dir == 'both') {
+    if (dir === 'both') {
         return true;
-    } else if (dir == 'left' && cursorLeft) {
+    } else if (dir === 'left' && cursorLeft) {
         return true;
-    } else if (dir == 'right' && !cursorLeft) {
+    } else if (dir === 'right' && !cursorLeft) {
         return true;
     } else {
         return false;
@@ -286,7 +286,7 @@ function findCursorRow(col) {
     let row = 0;
     for (; row < numRows; row++) {
         //unstraight ropes above cursor
-        if (ropes[col].path[row] !== 0 || ropes[col + 1].path[row] !== 0) {
+        if (ropes[col].path[row] != 0 || ropes[col + 1].path[row] != 0) {
             //if cursor matches knot, it goes over it
             if (knots.find(knot => knot.col == col && knot.row == row && directionMatches(knot.direction))) {
                 return row;
@@ -340,7 +340,7 @@ function pushDown () {
             rightRope.endCol--;
 
             //if same color, direction is 'both'. otherwise, choose direction at random 
-            if (leftRope.color == rightRope.color) {
+            if (leftRope.color === rightRope.color) {
                 var knotDir = 'both';
                 var knotColor = rightRope.color; //will never be accessed but doesn't hurt
             } else if (r < 0.75) {
@@ -572,16 +572,29 @@ function drawSparkles() {
             ctx.strokeStyle = 'white';
             ctx.lineWidth = 2;
 
+            //the center of the knot
             let centerX = coltoX(knot.col) + colWidth/2;
             let centerY = rowtoY(knot.row) - rowHeight/2;
 
-            //left is larger
-            ctx.arc(centerX - 7, centerY, (knot.sparkles+1)*1.5, 0, 2 * Math.PI);
+
+            //sparkle has large circle on bottom & small circle on top
+            //bottom circle is to the left if knot goes to the right
+            let bottomShift = 7;
+            if (knot.direction === 'right' ) {
+                bottomShift = -7;
+            } else if (knot.direction === 'both') {
+                //direction should not shift while knot is in same place
+                //but different knots should have different directions
+                //TODO: change to something nicer
+                bottomShift = (knot.col)%2 == 0 ? -7 : 7;
+            }
+
+            //they decrease in size as they get closer to disappearing
+            ctx.arc(centerX + bottomShift, centerY + 4, (knot.sparkles+1)*1.5, 0, 2 * Math.PI);
             ctx.stroke();
 
-            //right is slightly upwards
             ctx.beginPath();
-            ctx.arc(centerX + 7, centerY - 3, knot.sparkles+1, 0, 2 * Math.PI);
+            ctx.arc(centerX - bottomShift, centerY - 3, knot.sparkles+1, 0, 2 * Math.PI);
             ctx.stroke();
         }
     });
