@@ -156,6 +156,8 @@ function newGame() {
 
     gameRunning = true;
     gameOver = false;
+
+    drawGame();
 }
 
 //twists the two ropes under the cursor and adds/removes a knot if necessary
