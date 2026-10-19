@@ -685,7 +685,7 @@ function sleep(time) {
 }
 const maxFreq = 6000;
 const minFreq = 1000;
-const freqChangeRate = (maxFreq-minFreq)/30; //reach minimum frequency after 30 levels
+const freqChangeRate = (maxFreq-minFreq)/40; //reach minimum frequency after 40 levels
 
 //game loop to move down knots 
 function gameLoop() {
