@@ -19,7 +19,7 @@ let cursorLeft = true; //true is left, false is right
 let gameRunning = false; //if game is not paused
 let gameOver = false; //if game is lost
 let numBoosts = 0;
-const maxBoosts = 10;
+const maxBoosts = 20;
 let level = 0;
 let score = 0;
 
@@ -149,7 +149,7 @@ function initLevel() {
 //initialize new game
 function newGame() {
     level = 0;
-    numBoosts = 3;
+    numBoosts = 0;
     score = 0;
 
     initLevel();
@@ -474,6 +474,25 @@ function drawGame() {
     }
     ctx.stroke();
 
+    //draw boosts as circles along the sides of the ropes
+    for (let i = 0; i < numBoosts; i++) {
+        let xval = 0;
+
+        //even numbered boosts drawn on left, odd on right
+        if (i%2 == 0) {
+            xval = coltoX(0) - 2 * colWidth;
+        } else {
+            xval = coltoX(ropes.length - 1) + 2 * colWidth;
+        }
+
+        let yval = 100 + rowHeight * Math.floor(i/2);
+
+        ctx.beginPath();
+        ctx.fillStyle = 'white';
+        ctx.arc(xval, yval, 5, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+
     //display text
     drawLoomAndText();
 }
@@ -501,35 +520,14 @@ function drawLoomAndText() {
     //level top right
     ctx.textAlign = 'left';
     ctx.fillText('Level:', canvas.width - 175, 50);
-    //ctx.stroke();
     ctx.textAlign = 'right';
     ctx.fillText(level+1, canvas.width - 40, 50); //visible level indexes from 1
-    //ctx.stroke();
 
     //score top left
     ctx.textAlign = 'left';
     ctx.fillText('Score:', 40, 50);
     ctx.textAlign = 'right';
     ctx.fillText(score, 200, 50);
-
-    //draw boosts as circles along the sides of the ropes
-    for (let i = 0; i < numBoosts; i++) {
-        let xval = 0;
-
-        //even numbered boosts drawn on left, odd on right
-        if (i%2 == 0) {
-            xval = coltoX(0) - 2 * colWidth;
-        } else {
-            xval = coltoX(ropes.length - 1) + 2 * colWidth;
-        }
-
-        let yval = 100 + rowHeight * Math.floor(i/2);
-
-        ctx.beginPath();
-        ctx.fillStyle = 'white';
-        ctx.arc(xval, yval, 5, 0, 2 * Math.PI);
-        ctx.fill();
-    }
 }
 
 //draw pause menu: current level info and input message
@@ -550,8 +548,8 @@ function drawPause(message) {
 function updateSparkles() {
     knots.forEach(knot => {
         if (knot.sparkles == 0) {
-            //no sparkles: add with 5% prob
-            if (Math.random() < 0.05) {
+            //no sparkles: add with 3% prob
+            if (Math.random() < 0.03) {
                 knot.sparkles = 3;
             }
         } else {
@@ -574,7 +572,6 @@ function drawSparkles() {
             //the center of the knot
             let centerX = coltoX(knot.col) + colWidth/2;
             let centerY = rowtoY(knot.row) - rowHeight/2;
-
 
             //sparkle has large circle on bottom & small circle on top
             //bottom circle is to the left if knot goes to the right
