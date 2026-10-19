@@ -43,7 +43,6 @@ function initSmall() {
 
 //levels from the original fringer game (which groups them in 3s)
 //colors: index indicates color, value indicates number of ropes with that color
-//TODO: levels difficulty is scaled to expect increasing push frequency
 const levels = [
     //level 1 = 1-1
     {difficulty: 6, colors: [11, 1]},
@@ -371,7 +370,7 @@ function drawGameOver() {
 
     //red text
     ctx.font = "bold 60px Courier New";
-    ctx.fillStyle = colorCodes['red'];
+    ctx.fillStyle = 'red'; //brighter red than the ropes
     ctx.textAlign = 'center';
 
     ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
@@ -683,6 +682,13 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+//the wait time between loops is dependent on level
+function sleep(time) {
+    return new Promise((resolve) => setTimeout(resolve, time));
+}
+const maxFreq = 6000;
+const minFreq = 1000;
+const freqChangeRate = (maxFreq-minFreq)/30; //reach minimum frequency after 30 levels
 
 //game loop to move down knots 
 function gameLoop() {
@@ -707,8 +713,17 @@ cursorRow = findCursorRow(cursorCol);
 //game starts in paused state 
 drawPause('Press space to begin game');
 
-//push down every 6s
-setInterval(gameLoop, 6000);
+// //infinite loop to execute game loop at increasing frequency
+async function runGameLoop() {
+    while (true) {
+        gameLoop();
 
-//TODO: original game starts with bar every 6s but lowers interval as level increases
+        // Recalculate the delay each iteration; keep it between 1 and 6 seconds.
+        const loopFreq = Math.max(minFreq, maxFreq - level * freqChangeRate);
+        await sleep(loopFreq);
+    }
+}
+
+runGameLoop();
+
 
