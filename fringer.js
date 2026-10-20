@@ -331,7 +331,8 @@ function originalStage(level) {
 
 //pushes down all the knots & forms new ones at the top
 //game over if a knot reaches the bottom
-function pushDown () {
+//onscreen is true if push happening during level (instead of during setup)
+function pushDown (onscreen = false) {
     //remove first segment from each rope's path
     ropes.forEach(rope => {
         rope.path.shift();
@@ -379,7 +380,15 @@ function pushDown () {
                 var knotColor = leftRope.color;
             }
 
-            let newKnot = {col: i, row: numRows - 1, direction: knotDir, topColor: knotColor, sparkles: 0};
+            //sparkles appear on new knots 
+            let sparkle = 0;
+            if (onscreen) {
+                if (Math.random() < 1/3) {
+                    sparkle = 3;
+                }
+            }
+
+            let newKnot = {col: i, row: numRows - 1, direction: knotDir, topColor: knotColor, sparkles: sparkle};
             knots.push(newKnot);
 
             //advance over both ropes
@@ -599,19 +608,11 @@ function drawPause(message) {
     ctx.fillText(message, canvas.width/2, canvas.height/2);
 }
 
-//update sparkles for each knot: if none, add randomly
+//update sparkles for each knot
 //sparkles last for 3 pushes down
 function updateSparkles() {
     knots.forEach(knot => {
-        if (knot.sparkles == 0) {
-            //no sparkles: add with 3% prob
-            if (Math.random() < 0.03) {
-                knot.sparkles = 3;
-            }
-        } else {
-            //otherwise count down
-            knot.sparkles--;
-        }
+        knot.sparkles--;
     });
 }
 
@@ -749,10 +750,12 @@ function gameLoop() {
         //remove straight ropes and advance level
         comb();
 
-        //push down knots and check if game over
-        pushDown();
-
+        //decrease all the sparkles before pushdown adds new ones
         updateSparkles();
+
+        //push down knots and check if game over
+        //adding sparkles
+        pushDown(true);
 
         drawGame();
     }
