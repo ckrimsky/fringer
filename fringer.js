@@ -44,59 +44,59 @@ function initSmall() {
 //levels from the original fringer game (which groups them in 3s)
 //colors: index indicates color, value indicates number of ropes with that color
 const levels = [
-    //level 1 = 1-1
+    //1-1
     {difficulty: 6, colors: [11, 1]},
-    //level 2 = 1-2
+    //1-2
     {difficulty: 6, colors: [10, 1, 1]},
-    //level 3 = 1-3
+    //1-3
     {difficulty: 6, colors: [9, 2, 2]},
-    //level 4 = 2-1
+    //2-1
     {difficulty: 8, colors: [7, 4, 1]},
-    //level 5 = 2-2
+    //2-2
     {difficulty: 7, colors: [8, 2, 1, 1]},
-    //level 6 = 2-3
+    //2-3
     {difficulty: 6, colors: [7, 3, 1, 1]},
-    //level 7 = 3-1
+    //3-1
     {difficulty: 8, colors: [6, 5, 1]},
-    //level 8 = 3-2
+    //3-2
     {difficulty: 7, colors: [7, 2, 2, 1]},
-    //level 9 = 3-3
+    //3-3
     {difficulty: 6, colors: [6, 4, 1, 1]},
-    //level 10 = 4-1
+    //4-1
     {difficulty: 8, colors: [6, 3, 2, 1]},
-    //level 11 = 4-2
+    //4-2
     {difficulty: 7, colors: [8, 2, 2]},
-    //level 12 = 4-3
+    //4-3
     {difficulty: 6, colors: [7, 3, 2]},
-    //level 13 = 5-1
+    //5-1
     {difficulty: 8, colors: [6, 4, 2]},
-    //level 14 = 5-2
+    //5-2
     {difficulty: 7, colors: [5, 5, 1, 1]},
-    //level 15 = 5-3
+    //5-3
     {difficulty: 6, colors: [6, 2, 2, 2]},
-    //level 16 = 6-1
+    //6-1
     {difficulty: 8, colors: [5, 4, 3]},
-    //level 17 = 6-2
+    //6-2
     {difficulty: 7, colors: [5, 4, 3]},
-    //level 18 = 6-3
+    //6-3
     {difficulty: 6, colors: [5, 3, 2, 2]},
-    //level 19 = 7-1
+    //7-1
     {difficulty: 8, colors: [4, 4, 2, 2]},
-    //level 20 = 7-2
+    //7-2
     {difficulty: 7, colors: [4, 3, 3, 2]},
-    //level 21 = 7-3
+    //7-3
     {difficulty: 6, colors: [3, 3, 3, 3]},
-    //level 22 = 8-1
+    //8-1
     {difficulty: 8, colors: [5, 2, 2, 2, 1]},
-    //level 23 = 8-2
+    //8-2
     {difficulty: 7, colors: [5, 2, 2, 2, 1]},
-    //level 24 = 8-3
+    //8-3
     {difficulty: 6, colors: [4, 3, 2, 2, 1]},
-    //level 25 = 9-1
+    //9-1
     {difficulty: 8, colors: [4, 3, 2, 2, 1]},
-    //level 26 = 9-2
+    //9-2
     {difficulty: 7, colors: [4, 3, 2, 2, 1]},
-    //level 27 = 9-3
+    //9-3
     {difficulty: 6, colors: [3, 3, 2, 2, 2]}
 ];
 
@@ -203,8 +203,7 @@ function comb() {
         //ropes are straight when every element is 0
         if (ropes[i].path.every(e => e == 0)) {
             //increase score
-            //TODO: different scores for different ropes?
-            score += 20;
+            calculateRopeScore();
 
             //remove rope
             ropes.splice(i, 1);
@@ -234,8 +233,9 @@ function comb() {
 
     //level complete!
     if (knots.length == 0 && ropes.length == 0) {
+        //increase score based on level
+        calculateLevelScore();
         level++;
-        score += 100;
         initLevel();
     } else {
         //adjust cursor col if ropes have been removed but still exist
@@ -299,6 +299,35 @@ function findCursorRow(col) {
     return row - 1;
 }
 
+//adds the score for completing the current level
+function calculateLevelScore() {
+    //score based on level and stage
+    if (level < levels.length) {
+        score += originalLevel(level) * (100 + 50 * (level%3));
+    } else {
+        //bonus levels give 1k * bonus level number
+        score += 1000 * (level - levels.length + 1); 
+    }
+}
+
+//adds the score for clearing a rope depending on level and number of colors
+function calculateRopeScore() {
+    if (level < levels.length) { 
+        score += 5 * (originalLevel(level)-1) + 10 * (levels[level].colors.length);
+    } else {
+        score += 110; //bonus levels
+    }
+}
+
+//how the level displays on the original game
+function originalLevel(level) {
+    return Math.floor(level/3) + 1;
+}
+
+//how the stage displays on the original game
+function originalStage(level) {
+    return level%3 + 1;
+}
 
 //pushes down all the knots & forms new ones at the top
 //game over if a knot reaches the bottom
@@ -314,9 +343,7 @@ function pushDown () {
         knot.row--;
         if (knot.row < 0) {
             //GAME OVER!
-            gameRunning = false;
-            gameOver = true;
-            drawGameOver();
+            handleGameOver();
             return;
         }
     });
@@ -362,6 +389,22 @@ function pushDown () {
 
     //adjust cursor row
     cursorRow = findCursorRow(cursorCol);
+}
+
+//ends the game
+function handleGameOver() {
+    gameRunning = false;
+    gameOver = true;
+
+    //gain 30 points per unused boost
+    score += 30 * numBoosts;
+
+    //redraw score (need to erase old score)
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, 75);
+    drawLoomAndText();
+
+    drawGameOver();
 }
 
 //draws the "Game Over" text
@@ -523,7 +566,18 @@ function drawLoomAndText() {
     ctx.textAlign = 'left';
     ctx.fillText('Level:', canvas.width - 175, 50);
     ctx.textAlign = 'right';
-    ctx.fillText(level+1, canvas.width - 40, 50); //visible level indexes from 1
+
+    let displayLevel = '';
+    let displaysShift = 40;
+    if (level < levels.length) {
+        displayLevel = originalLevel(level).toString() + '-' + originalStage(level).toString();
+    } else {
+        //bonus levels will increase in lengh
+        ctx.textAlign = 'left';
+        displaysShift = 75;
+        displayLevel = 'B-' + (level - levels.length + 1).toString();
+    }
+    ctx.fillText(displayLevel, canvas.width - displaysShift, 50);
 
     //score top left
     ctx.textAlign = 'left';
@@ -712,7 +766,7 @@ cursorRow = findCursorRow(cursorCol);
 //game starts in paused state 
 drawPause('Press space to begin game');
 
-// //infinite loop to execute game loop at increasing frequency
+//infinite loop to execute game loop at increasing frequency
 async function runGameLoop() {
     while (true) {
         gameLoop();
@@ -724,5 +778,3 @@ async function runGameLoop() {
 }
 
 runGameLoop();
-
-
