@@ -147,8 +147,8 @@ function initLevel() {
 }
 
 //initialize new game
-function newGame() {
-    level = 0;
+function newGame(inputLevel = 0) {
+    level = inputLevel;
     numBoosts = 0;
     score = 0;
 
@@ -420,7 +420,7 @@ function handleGameOver() {
 function drawGameOver() {
     //black bar for text to go over
     ctx.fillStyle = 'black';
-    ctx.fillRect(0, canvas.height/2 - 60, canvas.width, 120);
+    ctx.fillRect(0, canvas.height/2 - 60, canvas.width, 150);
 
     //red text
     ctx.font = "bold 60px Courier New";
@@ -430,11 +430,9 @@ function drawGameOver() {
     ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
 
     //white instruction text
-    ctx.font = '25px Courier New';
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
+    drawMessage('Press space to begin a new game', 25, canvas.height/2 + 40)
 
-    ctx.fillText('Press space to begin a new game', canvas.width/2, canvas.height/2 + 40);
+    drawLevelSelect();
 }
 
 //draw full canvas
@@ -601,11 +599,21 @@ function drawPause(message) {
     drawLoomAndText();
 
     //larger font than level 
-    ctx.font = '30px Courier New';
+    drawMessage(message, 30, canvas.height/2)
+}
+
+//helper
+function drawLevelSelect() {
+    drawMessage('Or enter number to select level', 20, canvas.height/2+70);
+}
+
+//helper. writes the input message centered
+function drawMessage(message, size, height) {
+    ctx.font = size.toString() + 'px Courier New';
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
 
-    ctx.fillText(message, canvas.width/2, canvas.height/2);
+    ctx.fillText(message, canvas.width/2, height);
 }
 
 //update sparkles for each knot
@@ -698,10 +706,18 @@ function moveRight() {
 
 //handle keyboard input
 document.addEventListener('keydown', (event) => {
-    if (event.key === 'n') {
-        //new game!
+    //begin new games
+    if (event.key === 'n' || event.key === '0' || event.key === '1') {
         newGame();
+        return;
     }
+    let parsed = parseInt(event.key); 
+    if (parsed > 1 && parsed < 10) {
+        var startLevel = (parseInt(event.key) - 1) * 3;
+        newGame(startLevel);
+        return;
+    }
+
     if (event.key === 'Tab' || event.key === ' ' || event.key === 'ArrowDown' || event.key === 'ArrowUp' ) {
         event.preventDefault(); //prevent default behavior
     }
@@ -761,6 +777,13 @@ function gameLoop() {
     }
 }
 
+// //if user has saved default level
+// var storedLevel = localStorage.getItem("defaultLevel");
+
+// if (storedLevel != null) {
+//     level = parseInt(storedLevel);
+// }
+
 //initialize game-- default for now
 initLevel();
 //set correct row at start
@@ -768,6 +791,7 @@ cursorRow = findCursorRow(cursorCol);
 
 //game starts in paused state 
 drawPause('Press space to begin game');
+drawLevelSelect();
 
 //infinite loop to execute game loop at increasing frequency
 async function runGameLoop() {
