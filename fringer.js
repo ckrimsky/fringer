@@ -23,6 +23,12 @@ const maxBoosts = 20;
 let level = 0;
 let score = 0;
 
+//retreive high score from local storage
+let highScore = parseInt(localStorage.getItem('highScore'));
+if (isNaN(highScore)) {
+    highScore = 0;
+}
+
 let ropes = [];
 let knots = [];
 
@@ -148,6 +154,9 @@ function initLevel() {
 
 //initialize new game
 function newGame(inputLevel = 0) {
+    //update high score from prev game
+    updateHighScore();
+
     level = inputLevel;
     numBoosts = 0;
     score = 0;
@@ -408,12 +417,26 @@ function handleGameOver() {
     //gain 30 points per unused boost
     score += 30 * numBoosts;
 
-    //redraw score (need to erase old score)
+    //clear text area
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, 75);
-    drawLoomAndText();
+
+    //update high score & redraw text accordingly
+    let scoreUpdated = updateHighScore();
+    drawLoomAndText(scoreUpdated);
 
     drawGameOver();
+}
+
+//saves score to local storage if higher than saved one, returns true if so
+function updateHighScore() {
+    //compare current score to saved high score
+    if (score > highScore) {
+        localStorage.setItem('highScore', score);
+        highScore = score;
+        return true;
+    }
+    return false;
 }
 
 //draws the "Game Over" text
@@ -555,8 +578,9 @@ function clearCanvas() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-//draws the loom, level, score, boosts
-function drawLoomAndText() {
+//draws the loom, level, score, high score
+//if there's a new high score, draw it in red
+function drawLoomAndText(newHighScore = false) {
     //draw loom (line at top of ropes)
     ctx.beginPath();
     ctx.lineWidth = 2;
@@ -569,28 +593,35 @@ function drawLoomAndText() {
     ctx.font = '20px Courier New';
     ctx.fillStyle = 'white';
 
-    //level top right
-    ctx.textAlign = 'left';
-    ctx.fillText('Level:', canvas.width - 175, 50);
+    //level: top right
     ctx.textAlign = 'right';
+    ctx.fillText('Level:', canvas.width - 40, 30);
+    ctx.textAlign = 'center';
 
     let displayLevel = '';
-    let displaysShift = 40;
     if (level < levels.length) {
         displayLevel = originalLevel(level).toString() + '-' + originalStage(level).toString();
     } else {
-        //bonus levels will increase in lengh
-        ctx.textAlign = 'left';
-        displaysShift = 75;
+        //bonus levels
         displayLevel = 'B-' + (level - levels.length + 1).toString();
     }
-    ctx.fillText(displayLevel, canvas.width - displaysShift, 50);
+    ctx.fillText(displayLevel, canvas.width-75, 60);
 
-    //score top left
+    //score: top left
     ctx.textAlign = 'left';
-    ctx.fillText('Score:', 40, 50);
-    ctx.textAlign = 'right';
-    ctx.fillText(score, 200, 50);
+    ctx.fillText('Score:', 40, 30);
+    ctx.textAlign = 'center';
+    ctx.fillText(score, 75, 60);
+    
+    //high score: middle
+    ctx.textAlign = 'center';
+    ctx.fillText('High score:', canvas.width/2, 30);
+
+    if (newHighScore) {
+        ctx.font = 'bold 20px Courier New';
+        ctx.fillStyle = 'red';
+    }
+    ctx.fillText(highScore, canvas.width/2, 60);
 }
 
 //draw pause menu: current level info and input message
@@ -661,7 +692,6 @@ function drawSparkles() {
     });
 }
 
-
 //moves the cursor to the next leftwards open column or stays in place
 function moveLeft() {
     let newCol = cursorCol;
@@ -713,7 +743,7 @@ document.addEventListener('keydown', (event) => {
     }
     let parsed = parseInt(event.key); 
     if (parsed > 1 && parsed < 10) {
-        var startLevel = (parseInt(event.key) - 1) * 3;
+        let startLevel = (parseInt(event.key) - 1) * 3;
         newGame(startLevel);
         return;
     }
@@ -752,6 +782,11 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+//update high score on window close
+document.addEventListener('visibilitychange', () => {
+    updateHighScore();
+});
+
 //the wait time between loops is dependent on level
 function sleep(time) {
     return new Promise((resolve) => setTimeout(resolve, time));
@@ -777,17 +812,8 @@ function gameLoop() {
     }
 }
 
-// //if user has saved default level
-// var storedLevel = localStorage.getItem("defaultLevel");
-
-// if (storedLevel != null) {
-//     level = parseInt(storedLevel);
-// }
-
-//initialize game-- default for now
+//initialize game
 initLevel();
-//set correct row at start
-cursorRow = findCursorRow(cursorCol);
 
 //game starts in paused state 
 drawPause('Press space to begin game');

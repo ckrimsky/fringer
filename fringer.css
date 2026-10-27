@@ -7,7 +7,7 @@ body {
 canvas {
     margin-top: 5em;
     border: 2px solid #000;      
-    border-radius: 10px;  
+    border-radius: 10px;
 }
 
 p {
@@ -20,7 +20,12 @@ p {
 }
 
 @media screen and (max-width: 600px) {
+    /* widths are 100% when the viewport is 600px (default game size) or smaller */
     p {
-        width: 100%; /* The width is 100%, when the viewport is 800px or smaller */
+        width: 100%;
+    }
+    
+    canvas {
+        width: 100%;
     }
 }
