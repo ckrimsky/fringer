@@ -782,6 +782,75 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+//handle touchscreen input in canvas area
+//tap = space
+//swipe left = left arrow
+//swipe right = right arrow
+//2 finger tap = tab
+//3+ finger tap = pause
+let startX, doTwist;
+canvas.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    doTwist = false;
+
+    //handle normal movements
+    if (gameRunning) {
+        //1 finger: move or twist
+        if (event.touches.length == 1) {
+            //do a twist by default, but save x pos to see if user is moving
+            startX = event.touches[0].clientX;
+            doTwist = true;
+        } 
+        //2 fingers: boost
+        else if (event.touches.length == 2) {
+            useBoost();
+            //switching direction may cause cursor to go up
+            cursorRow = findCursorRow(cursorCol);
+            drawGame();
+        }
+        // more fingers: pause
+        else {
+            gameRunning = false;
+            drawPause('Tap to resume game');
+        }
+    } else if (!gameOver) {
+        //unpause
+        gameRunning = true;
+        drawGame();
+    } else {
+        //game is over, start new game
+        newGame();
+    }
+});
+
+//handle finger moving. updates so user can move finger back and forth without releasing
+canvas.addEventListener('touchmove', (event) => {
+    event.preventDefault();
+    let endX = event.touches[0].clientX;
+
+    //check current X pos against previous
+    if (endX - startX > 15) {
+        moveRight();
+        drawGame();
+        startX = endX;
+        doTwist = false;
+    } else if (endX - startX < -15) {
+        moveLeft();
+        drawGame();
+        startX = endX;
+        doTwist = false;
+    }
+});
+
+//handle finger release
+canvas.addEventListener('touchend', () => {
+    //single touch, finger has not moved
+    if (doTwist) {
+        twist();
+        drawGame();
+    }
+});
+
 //update high score on window close
 document.addEventListener('visibilitychange', () => {
     updateHighScore();
