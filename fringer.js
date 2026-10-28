@@ -856,6 +856,12 @@ document.addEventListener('visibilitychange', () => {
     updateHighScore();
 });
 
+//pause when window unfocused
+document.addEventListener('blur', () => {
+    gameRunning = false;
+    drawPause('Press space to resume game');
+})
+
 //the wait time between loops is dependent on level
 function sleep(time) {
     return new Promise((resolve) => setTimeout(resolve, time));
