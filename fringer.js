@@ -871,12 +871,12 @@ canvas.addEventListener('touchmove', (event) => {
     let endX = event.touches[0].clientX;
 
     //check current X pos against previous
-    if (endX - startX > 15) {
+    if (endX - startX > 13) {
         moveRight();
         drawGame();
         startX = endX;
         doTwist = false;
-    } else if (endX - startX < -15) {
+    } else if (endX - startX < -13) {
         moveLeft();
         drawGame();
         startX = endX;
