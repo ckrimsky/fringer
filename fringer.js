@@ -795,13 +795,13 @@ document.addEventListener('keydown', (event) => {
     }
 
     if (gameRunning) { //game input while running
-        if (event.key === 'ArrowLeft') {
+        if (event.key === 'ArrowLeft' || event.key === 'a') {
             moveLeft();
-        } else if (event.key === 'ArrowRight') {
+        } else if (event.key === 'ArrowRight' || event.key === 'd') {
             moveRight();
-        } else if (event.key === ' ' || event.key === 'x') {
+        } else if (event.key === ' ' || event.key === 'ArrowUp' || event.key === 'w') {
             twist();
-        } else if (event.key === 'Tab' || event.key === 'ArrowDown') {
+        } else if (event.key === 'Tab' || event.key === 'ArrowDown' || event.key === 's') {
             useBoost();
             //switching direction may cause cursor to go up
             cursorRow = findCursorRow(cursorCol);
