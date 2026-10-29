@@ -1,7 +1,6 @@
 This is my own implementation of the game Fringer designed by Alexey Pajitnov. This version includes the same levels, though my random generation of knots and boosts is different. 
 
 To do:
-- Update graphics
 - Candle and paintbrush bonuses
 - Sound effects
 

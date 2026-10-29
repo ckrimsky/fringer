@@ -6,6 +6,7 @@ const colWidth = 30;
 const rowHeight = 35;
 const ropeWidth = 6;
 const numRows = 15;
+const lowBuffer = 50;
 
 //define rope colors (most --> least common)
 const colorCodes = ['#4e9ea3', '#8b1a03', '#547e11', '#d5b344', '#642e84'];
@@ -250,6 +251,11 @@ function comb() {
         //adjust cursor col if ropes have been removed but still exist
         cursorCol = Math.min(cursorCol, ropes.length - 2);
         cursorRow = findCursorRow(cursorCol);
+
+        //don't let cursor be pushed off board
+        if (cursorRow < 0) {
+            moveLeft();
+        }
     }
 
     drawGame();
@@ -274,7 +280,7 @@ function coltoX(col) {
 //calculate Y position on canvas
 function rowtoY(row) {
     //we index from bottom but canvas indexes from top: subtract from height
-    return canvas.height - (row * rowHeight);
+    return canvas.height - (row * rowHeight) - lowBuffer;
 }
 
 //returns true if curser matches input knot direction
@@ -407,6 +413,14 @@ function pushDown (onscreen = false) {
 
     //adjust cursor row
     cursorRow = findCursorRow(cursorCol);
+    
+    //don't let cursor be pushed off board-- move whichever direction has space
+    if (cursorRow < 0 && ropes.length > 0) {
+        moveLeft();
+        if (cursorRow < 0) {
+            moveRight();
+        }
+    }
 }
 
 //ends the game
@@ -538,7 +552,7 @@ function drawGame() {
 
     //draw cursor
     ctx.beginPath();
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.strokeStyle = 'white';
     if (cursorLeft) {
         ctx.moveTo(coltoX(cursorCol), rowtoY(cursorRow+1));
@@ -549,15 +563,25 @@ function drawGame() {
     }
     ctx.stroke();
 
+    //draw column indicator beneath loom
+    //faces in direction of cursor
+    ctx.beginPath();
+    let counterClockwise = true;
+    if (cursorLeft) {
+        counterClockwise = false;
+    }
+    ctx.arc(coltoX(cursorCol) + colWidth/2, canvas.height - lowBuffer/2, 7, 0.5 * Math.PI, 1.5 * Math.PI, counterClockwise);
+    ctx.stroke();
+
     //draw boosts as circles along the sides of the ropes
     for (let i = 0; i < numBoosts; i++) {
         let xval = 0;
 
         //even numbered boosts drawn on left, odd on right
         if (i%2 == 0) {
-            xval = coltoX(0) - 2 * colWidth;
+            xval = coltoX(0) - 1.5 * colWidth;
         } else {
-            xval = coltoX(ropes.length - 1) + 2 * colWidth;
+            xval = coltoX(ropes.length - 1) + 1.5 * colWidth;
         }
 
         let yval = 100 + rowHeight * Math.floor(i/2);
@@ -581,23 +605,44 @@ function clearCanvas() {
 //draws the loom, level, score, high score
 //if there's a new high score, draw it in red
 function drawLoomAndText(newHighScore = false) {
-    //draw loom (line at top of ropes)
+    //draw loom (lines at top & bottom of ropes)
+    let loomBuffer = 50;
     ctx.beginPath();
     ctx.lineWidth = 2;
     ctx.strokeStyle = 'white';
-    ctx.moveTo(100, 75);
-    ctx.lineTo(canvas.width-100, 75);
+    ctx.moveTo(loomBuffer, 75);
+    ctx.lineTo(canvas.width-loomBuffer, 75);
     ctx.stroke();    
-
-    //all text in this style
+    ctx.moveTo(loomBuffer, rowtoY(0));
+    ctx.lineTo(canvas.width-loomBuffer, rowtoY(0));
+    ctx.stroke();
+    
+    //all lable text in this style
     ctx.font = '20px Courier New';
     ctx.fillStyle = 'white';
 
-    //level: top right
-    ctx.textAlign = 'right';
-    ctx.fillText('Level:', canvas.width - 40, 30);
+    let margin = 40;
+    let topRow = 30;
+    let bottomRow = 60;
+
+    //level: top left
+    ctx.textAlign = 'left';
+    ctx.fillText('Level:', margin, topRow);
     ctx.textAlign = 'center';
 
+    //score: top right
+    ctx.textAlign = 'right';
+    ctx.fillText('Score:', canvas.width - margin, topRow);
+
+    //high score: middle
+    ctx.textAlign = 'center';
+    ctx.fillText('High score:', canvas.width/2, topRow);
+
+    //values have larger text
+    ctx.font = '23px Courier New';
+
+    //level: top left
+    ctx.textAlign = 'left';
     let displayLevel = '';
     if (level < levels.length) {
         displayLevel = originalLevel(level).toString() + '-' + originalStage(level).toString();
@@ -605,20 +650,17 @@ function drawLoomAndText(newHighScore = false) {
         //bonus levels
         displayLevel = 'B-' + (level - levels.length + 1).toString();
     }
-    ctx.fillText(displayLevel, canvas.width-75, 60);
+    ctx.fillText(displayLevel, margin+15, bottomRow);
 
-    //score: top left
-    ctx.textAlign = 'left';
-    ctx.fillText('Score:', 40, 30);
-    ctx.textAlign = 'center';
-    ctx.fillText(score, 75, 60);
+    //score: right
+    ctx.textAlign = 'right';
+    ctx.fillText(score, canvas.width - margin, bottomRow);
     
-    //high score: middle
-    ctx.textAlign = 'center';
-    ctx.fillText('High score:', canvas.width/2, 30);
 
+    //high scoreL center
+    ctx.textAlign = 'center';
     if (newHighScore) {
-        ctx.font = 'bold 20px Courier New';
+        ctx.font = 'bold 23px Courier New';
         ctx.fillStyle = 'red';
     }
     ctx.fillText(highScore, canvas.width/2, 60);
@@ -630,7 +672,7 @@ function drawPause(message) {
     drawLoomAndText();
 
     //larger font than level 
-    drawMessage(message, 30, canvas.height/2)
+    drawMessage(message, 27, canvas.height/2)
 }
 
 //helper
@@ -858,8 +900,10 @@ document.addEventListener('visibilitychange', () => {
 
 //pause when window unfocused
 document.addEventListener('blur', () => {
-    gameRunning = false;
-    drawPause('Press space to resume game');
+    if (gameRunning) {
+        gameRunning = false;
+        drawPause('Press space to resume game');
+    }
 })
 
 //the wait time between loops is dependent on level

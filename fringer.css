@@ -8,13 +8,14 @@ canvas {
     margin-top: 5em;
     border: 2px solid #000;      
     border-radius: 10px;
+    font-family:'Courier New', Courier, monospace;
 }
 
 p {
     margin-inline: auto;
     text-align: left;
     background-color: #d5d5d5;
-    width: 500px;
+    width: 60%;
     padding: 10px;
     box-sizing: border-box;
 }
