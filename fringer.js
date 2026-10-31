@@ -6,7 +6,8 @@ const colWidth = 30;
 const rowHeight = 35;
 const ropeWidth = 6;
 const numRows = 15;
-const lowBuffer = 50;
+const lowBuffer = 60;
+let loomHeight = canvas.height - (rowHeight * numRows + lowBuffer);
 
 //define rope colors (most --> least common)
 const colorCodes = ['#4e9ea3', '#8b1a03', '#547e11', '#d5b344', '#642e84'];
@@ -23,6 +24,14 @@ let numBoosts = 0;
 const maxBoosts = 20;
 let level = 0;
 let score = 0;
+
+let candleOn = false;
+let candleTopCol = 0;
+let candleBottomCol = 0;
+let pushes = 0; //the number of times pushDown has been called this level
+let candleStart = 0; //the number of pushes when the candle was lit
+const candlesPerStage = 3; //number of candles that can appear on each stage
+let candlesThisStage = 0;
 
 //retreive high score from local storage
 let highScore = parseInt(localStorage.getItem('highScore'));
@@ -112,6 +121,11 @@ const defaultLevel = {difficulty: 9, colors: [4, 3, 2, 2, 1]};
 
 //initializes a level with ropes of the input colors
 function initLevel() {
+    //candle
+    pushes = 0;
+    candleOn = false;
+    candlesThisStage = 0;
+
     ropes = [];
     knots = [];
 
@@ -212,6 +226,9 @@ function comb() {
     while (i < ropes.length) {
         //ropes are straight when every element is 0
         if (ropes[i].path.every(e => e == 0)) {
+            //update candle values
+            updateCandle(i);
+
             //increase score
             calculateRopeScore();
 
@@ -348,6 +365,13 @@ function originalStage(level) {
 //game over if a knot reaches the bottom
 //onscreen is true if push happening during level (instead of during setup)
 function pushDown (onscreen = false) {
+    //track visible pushDowns
+    if (onscreen) {
+        pushes++;
+    }
+    //remove candle rope if relevant
+    burnCandle();
+
     //remove first segment from each rope's path
     ropes.forEach(rope => {
         rope.path.shift();
@@ -397,7 +421,7 @@ function pushDown (onscreen = false) {
 
             //sparkles appear on new knots 
             let sparkle = 0;
-            if (onscreen) {
+            if (onscreen && pushes > 2 && pushes < 10) { //TODO: check against original game
                 if (Math.random() < 1/3) {
                     sparkle = 3;
                 }
@@ -405,6 +429,15 @@ function pushDown (onscreen = false) {
 
             let newKnot = {col: i, row: numRows - 1, direction: knotDir, topColor: knotColor, sparkles: sparkle};
             knots.push(newKnot);
+
+            //if rope with candle has been moved, adjust candleTopCol accordingly
+            if (candleOn) {
+                if (candleTopCol == i) {
+                    candleTopCol++;
+                } else if (candleTopCol == i + 1) {
+                    candleTopCol--;
+                }
+            }
 
             //advance over both ropes
             i += 2;
@@ -420,6 +453,11 @@ function pushDown (onscreen = false) {
         if (cursorRow < 0) {
             moveRight();
         }
+    }
+
+    //cursor cannot move anywhere: game over
+    if (cursorRow < 0) {
+        handleGameOver();
     }
 }
 
@@ -584,7 +622,7 @@ function drawGame() {
             xval = coltoX(ropes.length - 1) + 1.5 * colWidth;
         }
 
-        let yval = 100 + rowHeight * Math.floor(i/2);
+        let yval = loomHeight + rowHeight/2 + rowHeight * Math.floor(i/2);
 
         ctx.beginPath();
         ctx.fillStyle = 'white';
@@ -594,6 +632,11 @@ function drawGame() {
 
     //display text
     drawLoomAndText();
+
+    //draw candle
+    if (candleOn) {
+        drawCandle();
+    }
 }
 
 function clearCanvas() {
@@ -606,12 +649,12 @@ function clearCanvas() {
 //if there's a new high score, draw it in red
 function drawLoomAndText(newHighScore = false) {
     //draw loom (lines at top & bottom of ropes)
-    let loomBuffer = 50;
+    let loomBuffer = 60;
     ctx.beginPath();
     ctx.lineWidth = 2;
     ctx.strokeStyle = 'white';
-    ctx.moveTo(loomBuffer, 75);
-    ctx.lineTo(canvas.width-loomBuffer, 75);
+    ctx.moveTo(loomBuffer, loomHeight);
+    ctx.lineTo(canvas.width-loomBuffer, loomHeight);
     ctx.stroke();    
     ctx.moveTo(loomBuffer, rowtoY(0));
     ctx.lineTo(canvas.width-loomBuffer, rowtoY(0));
@@ -622,13 +665,12 @@ function drawLoomAndText(newHighScore = false) {
     ctx.fillStyle = 'white';
 
     let margin = 40;
-    let topRow = 30;
-    let bottomRow = 60;
+    let topRow = 35;
+    let bottomRow = 65;
 
     //level: top left
     ctx.textAlign = 'left';
     ctx.fillText('Level:', margin, topRow);
-    ctx.textAlign = 'center';
 
     //score: top right
     ctx.textAlign = 'right';
@@ -656,14 +698,13 @@ function drawLoomAndText(newHighScore = false) {
     ctx.textAlign = 'right';
     ctx.fillText(score, canvas.width - margin, bottomRow);
     
-
-    //high scoreL center
+    //high score: center
     ctx.textAlign = 'center';
-    if (newHighScore) {
+    if (newHighScore) { //new high scores displayed in red
         ctx.font = 'bold 23px Courier New';
         ctx.fillStyle = 'red';
     }
-    ctx.fillText(highScore, canvas.width/2, 60);
+    ctx.fillText(highScore, canvas.width/2, bottomRow);
 }
 
 //draw pause menu: current level info and input message
@@ -732,6 +773,171 @@ function drawSparkles() {
             ctx.stroke();
         }
     });
+}
+
+//randomly lights candle if appropriate. randomly assigns columns
+function lightCandle() {
+    //candle only lights when already unlit, after first push, starting at level 2-3
+    //only lights candlesPerStage times per level
+    if (!candleOn && pushes > 0 && level >= 5 && candlesThisStage < candlesPerStage) {
+        //don't light candle if it was just turned off        
+        if (candlesThisStage > 0 && pushes - candleStart < 4) {
+            return;
+        }
+
+        //light with 1/3 chance
+        if (Math.random() < 1/3) {
+            candleOn = true;
+            candleStart = pushes;
+            candleTopCol = Math.floor(Math.random() * ropes.length);
+            candleBottomCol = Math.floor(Math.random() * ropes.length);
+            candlesThisStage++;
+        }
+    }
+}
+
+//draws red dots at the top and bottom in appropriate columns
+function drawCandle() {
+    ctx.beginPath();
+    ctx.fillStyle = 'red';
+
+    let margin = 12;
+
+    //top circle
+    ctx.arc(coltoX(candleTopCol), loomHeight - margin, 5, 0, 2*Math.PI);
+    ctx.fill();
+
+    //bottom circle
+    ctx.beginPath();
+    ctx.arc(coltoX(candleBottomCol), canvas.height - lowBuffer + margin, 5, 0, 2*Math.PI);
+    ctx.fill();
+}
+
+//updates candle values when a rope of index i is removed
+function updateCandle(i) {
+    if (candleOn) {
+        //turn off candle if it was on this rope
+        if (ropes[i].endCol == candleTopCol) {
+            candleOn = false;
+        } else { //otherwise adjust indicators
+            if (ropes[i].endCol < candleTopCol) {
+                candleTopCol--;
+            }
+
+            //TODO: check against original
+            if (candleBottomCol > ropes.length - 2) {
+                candleOn = false;
+            }
+        }
+    }
+}
+
+//debug helper
+function ropeString() {
+    let ropeString = '';
+    let i = 0;
+    ropes.forEach(rope => {
+        ropeString += i.toString() + ' ['
+        ropeString += rope.path.toString();
+        ropeString += '] ' + rope.endCol.toString() + '\n';
+        i++;
+    })
+    return ropeString;
+}
+
+//debug helper
+function knotString() {
+    let knotString = '';
+    knots.forEach(knot => {
+        knotString += '\tcol: ' + knot.col.toString() + ', row: ' + knot.row.toString() + '\n';
+    })
+    return knotString;
+}
+
+//checks if the user has aligned the candle indicators and deletes the rope if so
+function burnCandle(){
+    if (candleOn) {
+        //check if candle rope is aligned
+        for (let i = 0; i < ropes.length; i++) {
+            if (candleBottomCol == i && candleTopCol == ropes[i].endCol) {
+                candleOn = false;
+
+                //find knots along rope we remove
+                let col = i;
+                let deletedKnots = [];
+                for (let row = 0; row < numRows; row++) {
+                    let dir = ropes[i].path[row];
+
+                    if (dir != 0) {
+                        //reached knot
+                        let knotCol = dir == 1 ? col : col - 1;
+                        
+                        //delete from list of knots
+                        let j = knots.findIndex(knot => knot.row == row && knot.col == knotCol);
+                        if (j != -1) {
+                            knots.splice(j, 1);
+                            deletedKnots.push({row: row, col: knotCol});
+                        }
+                    }
+
+                    //decrease knots cols to the right of our rope
+                    knots.forEach(knot => {
+                        if (knot.row == row && knot.col > col) {
+                            knot.col--;
+                        }
+                    })
+
+                    col += dir;
+                }
+
+                //go thru other ropes to straighten parts that interracted with deleted knots
+                for (let j = 0; j < ropes.length; j++) {
+                    if (j != i) {
+                        col = j;
+                        for (let row = 0; row < numRows; row++) {
+                            let dir = ropes[j].path[row];
+                            
+                            if (dir != 0) {
+                                //reached knot
+                                let knotCol = dir == 1 ? col : col - 1;
+
+                                //check if deleted knot and straighten if so
+                                if (deletedKnots.findIndex(knot => knot.row == row && knot.col == knotCol) != -1) {
+                                    ropes[j].path[row] = 0;
+                                }
+
+                                col += dir;
+                            }
+                        }
+                    }
+                }
+
+                //remove rope
+                ropes.splice(i, 1);
+
+                //adjust cursor
+                if (cursorCol >= i || cursorCol > ropes.length - 2) {
+                    moveLeft();
+                }
+
+                //every rope must recalculate end col
+                for (let j = 0; j < ropes.length; j++) {
+                    let total = ropes[j].path.reduce((sum, number) => sum + number, 0);
+                    ropes[j].endCol = j + total;
+                }
+
+                //remove any remaining straightened ropes
+                comb();
+
+                break; //only need to delete one rope
+            }
+        }
+
+        //remove candle if it has been onscreen for too long
+        if (candleOn && pushes - candleStart >= 3) {
+            candleOn = false;
+        }
+    }
 }
 
 //moves the cursor to the next leftwards open column or stays in place
@@ -926,6 +1132,11 @@ function gameLoop() {
         //push down knots and check if game over
         //adding sparkles
         pushDown(true);
+
+        //light candle if applicable
+        lightCandle();
+        
+        //TODO: paintbrush appears starging on 3-1
 
         drawGame();
     }

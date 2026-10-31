@@ -12,17 +12,23 @@ canvas {
 }
 
 p {
-    margin-inline: auto;
     text-align: left;
+}
+
+.textbox {
     background-color: #d5d5d5;
     width: 60%;
-    padding: 1em;
+    padding-left: 1.5em;
+    padding-right: 1em;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+    margin: 1em auto;
     box-sizing: border-box;
 }
 
 @media screen and (max-width: 550px) {
     /* widths are 100% when the viewport is 550px (default game size) or smaller */
-    p {
+    .textbox {
         width: 100%;
     }
     
