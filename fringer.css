@@ -1,6 +1,5 @@
 body {
     text-align: center;
-    height: 100vh;
     background-color: #727272;
 }
 
@@ -9,6 +8,7 @@ canvas {
     border: 2px solid #000;      
     border-radius: 10px;
     font-family:'Courier New', Courier, monospace;
+    box-sizing: border-box;
 }
 
 p {
@@ -16,12 +16,12 @@ p {
     text-align: left;
     background-color: #d5d5d5;
     width: 60%;
-    padding: 10px;
+    padding: 1em;
     box-sizing: border-box;
 }
 
-@media screen and (max-width: 600px) {
-    /* widths are 100% when the viewport is 600px (default game size) or smaller */
+@media screen and (max-width: 550px) {
+    /* widths are 100% when the viewport is 550px (default game size) or smaller */
     p {
         width: 100%;
     }
