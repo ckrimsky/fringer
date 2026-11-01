@@ -24,20 +24,40 @@ let numBoosts = 0;
 const maxBoosts = 20;
 let level = 0;
 let score = 0;
+let pushes = 0; //the number of times pushDown has been called this level
 
+//bonuses
 let candleOn = false;
 let candleTopCol = 0;
 let candleBottomCol = 0;
-let pushes = 0; //the number of times pushDown has been called this level
 let candleStart = 0; //the number of pushes when the candle was lit
 const candlesPerStage = 3; //number of candles that can appear on each stage
 let candlesThisStage = 0;
+
+//buttons
+const pauseSymbol = '⏸';
+const playSymbol = '▸';
+const bonusOnSymbol = '★';
+const bonusOffSymbol = '☆';
 
 //retreive high score from local storage
 let highScore = parseInt(localStorage.getItem('highScore'));
 if (isNaN(highScore)) {
     highScore = 0;
 }
+
+//retreive button values from local storage and modify buttons accordingly
+let startLevel = parseInt(localStorage.getItem('startLevel'));
+if (isNaN(startLevel) || startLevel < 0 || startLevel > 9) {
+    startLevel = 0;
+    document.getElementById('startLevel').value = 0;
+} else {
+    document.getElementById('startLevel').value = startLevel;
+    level = startLevel;
+}
+
+let bonusesOn = localStorage.getItem('bonusesOn') === 'true';
+updateBonusButton();
 
 let ropes = [];
 let knots = [];
@@ -168,7 +188,7 @@ function initLevel() {
 }
 
 //initialize new game
-function newGame(inputLevel = 0) {
+function newGame(inputLevel = startLevel) {
     //update high score from prev game
     updateHighScore();
 
@@ -178,8 +198,8 @@ function newGame(inputLevel = 0) {
 
     initLevel();
 
-    gameRunning = true;
     gameOver = false;
+    resumeGame();
 
     drawGame();
 }
@@ -463,7 +483,7 @@ function pushDown (onscreen = false) {
 
 //ends the game
 function handleGameOver() {
-    gameRunning = false;
+    pauseGame();
     gameOver = true;
 
     //gain 30 points per unused boost
@@ -716,6 +736,32 @@ function drawPause(message) {
     drawMessage(message, 27, canvas.height/2)
 }
 
+//pauses/resumes the game depending on current state and updates button text
+function pauseButton() {
+    if (gameOver) {
+        newGame();
+    } else if (gameRunning) {
+        pauseGame();
+        drawPause('Paused');
+    } else {
+        resumeGame();
+        drawGame();
+    }
+}
+
+//changes the gameRunning flag and updates the play/pause button
+function pauseGame() {
+    document.getElementById('pause').innerText = playSymbol;
+    gameRunning = false;
+}
+
+//changes the gameRunning flag and updates the play/pause button
+function resumeGame() {
+    document.getElementById('pause').innerText = pauseSymbol;
+    gameRunning = true;
+}
+
+
 //helper
 function drawLevelSelect() {
     drawMessage('Or enter number to select level', 20, canvas.height/2+70);
@@ -779,7 +825,7 @@ function drawSparkles() {
 function lightCandle() {
     //candle only lights when already unlit, after first push, starting at level 2-3
     //only lights candlesPerStage times per level
-    if (!candleOn && pushes > 0 && level >= 5 && candlesThisStage < candlesPerStage) {
+    if (bonusesOn && !candleOn && pushes > 0 && level >= 5 && candlesThisStage < candlesPerStage) {
         //don't light candle if it was just turned off        
         if (candlesThisStage > 0 && pushes - candleStart < 4) {
             return;
@@ -940,6 +986,30 @@ function burnCandle(){
     }
 }
 
+//toggles bonuses on or off
+function toggleBonuses() {
+    bonusesOn = !bonusesOn;
+    localStorage.setItem('bonusesOn', bonusesOn);
+    updateBonusButton();
+}
+
+//updates the bonus button to display on or off symbol
+function updateBonusButton() {
+    if (bonusesOn) {
+        document.getElementById('bonus').innerText = bonusOnSymbol;
+        
+    } else {
+        document.getElementById('bonus').innerText = bonusOffSymbol;
+    }
+}
+
+//changes the default starting level to the selected value and begins new game
+function changeStartLevel() {
+    startLevel = document.getElementById('startLevel').value;
+    localStorage.setItem('startLevel', startLevel);
+    newGame();
+}
+
 //moves the cursor to the next leftwards open column or stays in place
 function moveLeft() {
     let newCol = cursorCol;
@@ -996,7 +1066,7 @@ document.addEventListener('keydown', (event) => {
         return;
     }
 
-    if (event.key === 'Tab' || event.key === ' ' || event.key === 'ArrowDown' || event.key === 'ArrowUp' ) {
+    if (event.key === 'Tab' || event.key === ' ' || event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'ArrowLeft' || event.key === 'ArrowRight' ) {
         event.preventDefault(); //prevent default behavior
     }
 
@@ -1012,14 +1082,14 @@ document.addEventListener('keydown', (event) => {
             //switching direction may cause cursor to go up
             cursorRow = findCursorRow(cursorCol);
         } else if (event.key === 'p') {
-            gameRunning = false;
+            pauseGame();
             drawPause('Press space to resume game');
         }
         drawGame();
     } else if (!gameOver) {
         //game is paused-- press space to start
         if (event.key === ' ') {
-            gameRunning = true;
+            resumeGame();
             drawGame();
         }
     } else {
@@ -1058,12 +1128,12 @@ canvas.addEventListener('touchstart', (event) => {
         }
         // more fingers: pause
         else {
-            gameRunning = false;
+            pauseGame();
             drawPause('Tap to resume game');
         }
     } else if (!gameOver) {
         //unpause
-        gameRunning = true;
+        resumeGame();
         drawGame();
     } else {
         //game is over, start new game
@@ -1107,7 +1177,7 @@ document.addEventListener('visibilitychange', () => {
 //pause when window unfocused
 document.addEventListener('blur', () => {
     if (gameRunning) {
-        gameRunning = false;
+        pauseGame();
         drawPause('Press space to resume game');
     }
 })

@@ -4,11 +4,27 @@ body {
 }
 
 canvas {
-    margin-top: 5em;
     border: 2px solid #000;      
     border-radius: 10px;
     font-family:'Courier New', Courier, monospace;
     box-sizing: border-box;
+}
+
+.buttonContainer {
+    user-select: none;
+    margin-top: 5em;
+    margin-bottom: 0.5em;
+    box-sizing: border-box;
+}
+
+/*style for buttons and select*/
+.buttonContainer .buttonClass {
+    width: 2em;
+    height: 2em;
+    font-size: 1.5em;
+    text-align: center;
+    border-radius: 7px;
+    border: 1px solid black;
 }
 
 p {

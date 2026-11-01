@@ -8,6 +8,22 @@
     <script src="fringer.js" defer></script>
 </head>
 <body>
+    <div class="buttonContainer">
+        <button title="New game" onclick="newGame()" class="buttonClass">↻</button>
+        <button id="pause" title="Pause" onclick="pauseButton()" class="buttonClass">⏯</button>
+        <button id="bonus" title="Toggle bonuses" onclick="toggleBonuses()" class="buttonClass">☆</button>
+        <select id="startLevel" title="Select starting level" onchange="changeStartLevel()" class="buttonClass">
+            <option value="0" selected="selected">1</option>
+            <option value="3">2</option>
+            <option value="6">3</option>
+            <option value="9">4</option>
+            <option value="12">5</option>
+            <option value="15">6</option>
+            <option value="18">7</option>
+            <option value="21">8</option>
+            <option value="24">9</option>
+        </select>
+    </div>
     <canvas id="fringerCanvas" width="520" height="675"></canvas>
     <div class="textbox">
         <p>
@@ -29,11 +45,11 @@
         </p>
         
         <p>
-            <b>Press 'P' to pause</b>. On mobile, tap with three fingers to pause. Press 'N' at any time to start a new game, or enter a level number at any time to start that level.
+            <b>Press 'P' or the pause button to pause</b>. On mobile, tap with three fingers to pause. Press 'N' or the replay button to start a new game. Change the start level using the dropdown.
         </p>
         
         <p>
-            The candle bonus begins to appear in level 2-3. Connect a rope between the top and bottom red indicators and that rope will disappear when the knots are next pushed down.
+            The candle bonus begins to appear in level 2-3. Connect a rope between the top and bottom red indicators and that rope will disappear when the knots are next pushed down. Toggle the star button to turn ond and off bonuses.
         </p>
         
     </div>
