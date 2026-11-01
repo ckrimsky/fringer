@@ -35,8 +35,8 @@ const candlesPerStage = 3; //number of candles that can appear on each stage
 let candlesThisStage = 0;
 
 //buttons
-const pauseSymbol = '⏸';
-const playSymbol = '▸';
+const pauseIconPath = 'M6 2h4v16H6zM14 2h4v16h-4z'; //svg paths provided by copilot
+const playIconPath = 'M7 2v16l12-8z';
 const bonusOnSymbol = '★';
 const bonusOffSymbol = '☆';
 
@@ -751,16 +751,23 @@ function pauseButton() {
 
 //changes the gameRunning flag and updates the play/pause button
 function pauseGame() {
-    document.getElementById('pause').innerText = playSymbol;
+    setPauseButtonIcon(playIconPath, 'Play');
     gameRunning = false;
 }
 
 //changes the gameRunning flag and updates the play/pause button
 function resumeGame() {
-    document.getElementById('pause').innerText = pauseSymbol;
+    setPauseButtonIcon(pauseIconPath, 'Pause');
     gameRunning = true;
 }
 
+//sets the svg path and label
+function setPauseButtonIcon(path, label) {
+    const button = document.getElementById('pause');
+    button.querySelector('path').setAttribute('d', path);
+    button.title = label;
+    button.setAttribute('aria-label', label);
+}
 
 //helper
 function drawLevelSelect() {

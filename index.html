@@ -10,7 +10,9 @@
 <body>
     <div class="buttonContainer">
         <button title="New game" onclick="newGame()" class="buttonClass">↻</button>
-        <button id="pause" title="Pause" onclick="pauseButton()" class="buttonClass">⏯</button>
+        <button id="pause" title="Play" aria-label="Play" onclick="pauseButton()" class="buttonClass">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 2v16l12-8z"></path></svg>
+        </button>
         <button id="bonus" title="Toggle bonuses" onclick="toggleBonuses()" class="buttonClass">☆</button>
         <select id="startLevel" title="Select starting level" onchange="changeStartLevel()" class="buttonClass">
             <option value="0" selected="selected">1</option>
