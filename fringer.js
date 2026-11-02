@@ -515,7 +515,7 @@ function updateHighScore() {
 function drawGameOver() {
     //black bar for text to go over
     ctx.fillStyle = 'black';
-    ctx.fillRect(0, canvas.height/2 - 60, canvas.width, 150);
+    ctx.fillRect(0, canvas.height/2 - 60, canvas.width, 130);
 
     //red text
     ctx.font = "bold 60px Courier New";
@@ -525,9 +525,7 @@ function drawGameOver() {
     ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
 
     //white instruction text
-    drawMessage('Press space to begin a new game', 25, canvas.height/2 + 40)
-
-    drawLevelSelect();
+    drawMessage('Press space to begin a new game', 25, canvas.height/2 + 50)
 }
 
 //draw full canvas
@@ -1224,7 +1222,6 @@ initLevel();
 
 //game starts in paused state 
 drawPause('Press space to begin game');
-drawLevelSelect();
 
 //infinite loop to execute game loop at increasing frequency
 async function runGameLoop() {

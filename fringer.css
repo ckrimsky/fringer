@@ -19,13 +19,24 @@ canvas {
 }
 
 /*style for buttons and select*/
-.buttonContainer .buttonClass {
+.buttonClass {
     width: 2em;
     height: 2em;
     font-size: 1.5em;
     text-align: center;
+    vertical-align: middle;
     border-radius: 7px;
     border: 1px solid black;
+    color: black;
+    background-color: white;
+}
+
+.buttonClass:hover {
+    background-color: #d5d5d5;
+}
+
+.buttonClass:active {
+    background-color: #b5b5b5;
 }
 
 #pause svg {
@@ -40,6 +51,7 @@ p {
 
 .textbox {
     background-color: #d5d5d5;
+    color: black;
     width: 60%;
     padding-left: 1.5em;
     padding-right: 1em;
@@ -49,8 +61,8 @@ p {
     box-sizing: border-box;
 }
 
-@media screen and (max-width: 550px) {
-    /* widths are 100% when the viewport is 550px (default game size) or smaller */
+@media screen and (max-width: 536px) {
+    /* widths are 100% when the viewport is canvas width + margins or smaller */
     .textbox {
         width: 100%;
     }
