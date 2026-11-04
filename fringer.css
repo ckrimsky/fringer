@@ -29,8 +29,15 @@ canvas {
     border: 1px solid black;
     color: black;
     background-color: white;
+    display: inline-block; 
 }
 
+/*only hover on devices that support hover, to prevent hover sticking on mobile*/
+@media (hover: hover) {
+    .buttonClass:hover {
+        background-color: #d5d5d5;
+    }
+}
 .buttonClass:hover {
     background-color: #d5d5d5;
 }
@@ -45,20 +52,29 @@ canvas {
     vertical-align: middle;
 }
 
-p {
-    text-align: left;
-}
-
+/*formatting for textboxes*/
 .textbox {
     background-color: #d5d5d5;
     color: black;
     width: 60%;
     padding-left: 1.5em;
     padding-right: 1em;
-    padding-top: 0.5em;
-    padding-bottom: 0.5em;
+    padding-top: 1em;
+    padding-bottom: 1em;
     margin: 1em auto;
     box-sizing: border-box;
+}
+
+.textbox p {
+    text-align: left;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+.textbox h3 {
+    text-align: left;
+    margin-bottom: 0em;
+    margin-top: 0.5em;
 }
 
 @media screen and (max-width: 536px) {

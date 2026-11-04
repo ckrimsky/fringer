@@ -33,6 +33,8 @@ let candleBottomCol = 0;
 let candleStart = 0; //the number of pushes when the candle was lit
 const candlesPerStage = 3; //number of candles that can appear on each stage
 let candlesThisStage = 0;
+let paintbrushOn = false;
+let levelsUntilNextPaintbrush = 0; //resets every 3 stages
 
 //buttons
 const pauseIconPath = 'M6 2h4v16H6zM14 2h4v16h-4z'; //svg paths provided by copilot
@@ -80,59 +82,59 @@ function initSmall() {
 //levels from the original fringer game (which groups them in 3s)
 //colors: index indicates color, value indicates number of ropes with that color
 const levels = [
-    //1-1
+    //0: 1-1
     {difficulty: 6, colors: [11, 1]},
-    //1-2
+    //1: 1-2
     {difficulty: 6, colors: [10, 1, 1]},
-    //1-3
+    //2: 1-3
     {difficulty: 6, colors: [9, 2, 2]},
-    //2-1
+    //3:  2-1
     {difficulty: 8, colors: [7, 4, 1]},
-    //2-2
+    //4: 2-2
     {difficulty: 7, colors: [8, 2, 1, 1]},
-    //2-3
+    //5: 2-3
     {difficulty: 6, colors: [7, 3, 1, 1]},
-    //3-1
+    //6: 3-1
     {difficulty: 8, colors: [6, 5, 1]},
-    //3-2
+    //7: 3-2
     {difficulty: 7, colors: [7, 2, 2, 1]},
-    //3-3
+    //8: 3-3
     {difficulty: 6, colors: [6, 4, 1, 1]},
-    //4-1
+    //9: 4-1
     {difficulty: 8, colors: [6, 3, 2, 1]},
-    //4-2
+    //10: 4-2
     {difficulty: 7, colors: [8, 2, 2]},
-    //4-3
+    //11: 4-3
     {difficulty: 6, colors: [7, 3, 2]},
-    //5-1
+    //12: 5-1
     {difficulty: 8, colors: [6, 4, 2]},
-    //5-2
+    //13: 5-2
     {difficulty: 7, colors: [5, 5, 1, 1]},
-    //5-3
+    //14: 5-3
     {difficulty: 6, colors: [6, 2, 2, 2]},
-    //6-1
+    //15: 6-1
     {difficulty: 8, colors: [5, 4, 3]},
-    //6-2
+    //16: 6-2
     {difficulty: 7, colors: [5, 4, 3]},
-    //6-3
+    //17: 6-3
     {difficulty: 6, colors: [5, 3, 2, 2]},
-    //7-1
+    //18: 7-1
     {difficulty: 8, colors: [4, 4, 2, 2]},
-    //7-2
+    //19: 7-2
     {difficulty: 7, colors: [4, 3, 3, 2]},
-    //7-3
+    //20: 7-3
     {difficulty: 6, colors: [3, 3, 3, 3]},
-    //8-1
+    //21: 8-1
     {difficulty: 8, colors: [5, 2, 2, 2, 1]},
-    //8-2
+    //22: 8-2
     {difficulty: 7, colors: [5, 2, 2, 2, 1]},
-    //8-3
+    //23: 8-3
     {difficulty: 6, colors: [4, 3, 2, 2, 1]},
-    //9-1
+    //24: 9-1
     {difficulty: 8, colors: [4, 3, 2, 2, 1]},
-    //9-2
+    //25: 9-2
     {difficulty: 7, colors: [4, 3, 2, 2, 1]},
-    //9-3
+    //26: 9-3
     {difficulty: 6, colors: [3, 3, 2, 2, 2]}
 ];
 
@@ -141,10 +143,16 @@ const defaultLevel = {difficulty: 9, colors: [4, 3, 2, 2, 1]};
 
 //initializes a level with ropes of the input colors
 function initLevel() {
-    //candle
+    //bonuses
     pushes = 0;
     candleOn = false;
     candlesThisStage = 0;
+    
+    //paintbrushes last for 3 stages and don't appear again for another 3
+    if (level % 3 == 0) { 
+        paintbrushOn = false;
+        levelsUntilNextPaintbrush--;    
+    }
 
     ropes = [];
     knots = [];
@@ -195,6 +203,10 @@ function newGame(inputLevel = startLevel) {
     level = inputLevel;
     numBoosts = 0;
     score = 0;
+
+    //reset paintbrush (candle reset in initLevel)
+    paintbrushOn = false;
+    levelsUntilNextPaintbrush = 0;
 
     initLevel();
 
@@ -491,7 +503,7 @@ function handleGameOver() {
 
     //clear text area
     ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, 75);
+    ctx.fillRect(0, 0, canvas.width, 70);
 
     //update high score & redraw text accordingly
     let scoreUpdated = updateHighScore();
@@ -525,7 +537,7 @@ function drawGameOver() {
     ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
 
     //white instruction text
-    drawMessage('Press space to begin a new game', 25, canvas.height/2 + 50)
+    drawMessage('Press enter to begin a new game', 25, canvas.height/2 + 50)
 }
 
 //draw full canvas
@@ -651,9 +663,12 @@ function drawGame() {
     //display text
     drawLoomAndText();
 
-    //draw candle
+    //draw bonuses
     if (candleOn) {
         drawCandle();
+    }
+    if (paintbrushOn) {
+        drawPaintbrush();
     }
 }
 
@@ -828,16 +843,16 @@ function drawSparkles() {
 
 //randomly lights candle if appropriate. randomly assigns columns
 function lightCandle() {
-    //candle only lights when already unlit, after first push, starting at level 2-3
+    //candle only lights when already unlit, after first push, starting at level 2-2
     //only lights candlesPerStage times per level
-    if (bonusesOn && !candleOn && pushes > 0 && level >= 5 && candlesThisStage < candlesPerStage) {
+    if (bonusesOn && !candleOn && pushes > 0 && level >= 4 && candlesThisStage < candlesPerStage) {
         //don't light candle if it was just turned off        
         if (candlesThisStage > 0 && pushes - candleStart < 4) {
             return;
         }
 
-        //light with 1/3 chance
-        if (Math.random() < 1/3) {
+        //light with 1/4 chance
+        if (Math.random() < 1/4) {
             candleOn = true;
             candleStart = pushes;
             candleTopCol = Math.floor(Math.random() * ropes.length);
@@ -991,9 +1006,85 @@ function burnCandle(){
     }
 }
 
+//activates the paintbrush bonus if appropriate
+function activatePaintbrush() { 
+    //paintbrush starts at level 3-1
+    if (bonusesOn && !paintbrushOn && pushes >= 1 && level >= 6 && levelsUntilNextPaintbrush < 1) {
+        //appears randomly
+        if (Math.random() < 1/5) {
+            paintbrushOn = true;
+            levelsUntilNextPaintbrush = 1;
+        }
+    }
+}
+
+//draws the paintbrush in the bottom right corner
+function drawPaintbrush() {
+    const paintbrushImage = new Image();
+    paintbrushImage.src = 'img/paintbrush.png';
+    let buffer = 20; //space between paintbrush and edge of canvas
+    ctx.drawImage(paintbrushImage, canvas.width - buffer - paintbrushImage.width, canvas.height - buffer - paintbrushImage.height);
+}
+
+//randomly recolors the existing ropes. doesn't preserve knots
+function usePaintbrush() {
+    if (paintbrushOn) {
+        //find average first knot row
+        let firstKnotRow = 0;
+        ropes.forEach(rope => {
+            firstKnotRow += rope.path.findIndex((dir) => dir != 0);
+        });
+        firstKnotRow = Math.round(firstKnotRow / ropes.length);
+
+        //remove all knots
+        knots = [];
+
+        //weight ropes for recoloring
+        let colorWeights = [16, 8, 4, 2, 1];
+        
+        //don't have more colors than in this level
+        //if level is beyond defined levels, use bonus level
+        let numColors = level < levels.length ? levels[level].colors.length : defaultLevel.colors.length;
+        colorWeights = colorWeights.slice(0, numColors);
+
+        let totalWeight = colorWeights.reduce((sum, number) => sum + number, 0);
+
+        //recolor and straighten ropes
+        for (let col = 0; col < ropes.length; col++) {
+            //randomly select a color based on weights
+            let p = Math.random() * totalWeight;
+            let i = 0;
+            for (; i < colorWeights.length; i++) {
+                p -= colorWeights[i];
+                if (p <= 0) {
+                    break;
+                }
+            }
+            ropes[col].color = colorCodes[i];
+            ropes[col].path = Array(numRows).fill(0);
+            ropes[col].endCol = col;
+        }
+
+        let numPushes = numRows - firstKnotRow; // fill to same level. pushDown updates cursorRow
+        for (let i = 0; i < numPushes; i++) {
+            pushDown();
+        }
+
+        //turn off paintbrush
+        paintbrushOn = false;
+        levelsUntilNextPaintbrush = 2; //can't use next level
+    }
+}
+
+
 //toggles bonuses on or off
 function toggleBonuses() {
     bonusesOn = !bonusesOn;
+    //turn off bonuses
+    if (!bonusesOn) {
+        candleOn = false;
+        paintbrushOn = false;
+    }
     localStorage.setItem('bonusesOn', bonusesOn);
     updateBonusButton();
 }
@@ -1060,12 +1151,12 @@ function moveRight() {
 //handle keyboard input
 document.addEventListener('keydown', (event) => {
     //begin new games
-    if (event.key === 'n' || event.key === '0' || event.key === '1') {
+    if (event.key.toLowerCase() === 'n') {
         newGame();
         return;
     }
     let parsed = parseInt(event.key); 
-    if (parsed > 1 && parsed < 10) {
+    if (parsed > 0 && parsed < 10) {
         let startLevel = (parseInt(event.key) - 1) * 3;
         newGame(startLevel);
         return;
@@ -1076,19 +1167,21 @@ document.addEventListener('keydown', (event) => {
     }
 
     if (gameRunning) { //game input while running
-        if (event.key === 'ArrowLeft' || event.key === 'a') {
+        if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') {
             moveLeft();
-        } else if (event.key === 'ArrowRight' || event.key === 'd') {
+        } else if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') {
             moveRight();
-        } else if (event.key === ' ' || event.key === 'ArrowUp' || event.key === 'w') {
+        } else if (event.key === ' ' || event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') {
             twist();
-        } else if (event.key === 'Tab' || event.key === 'ArrowDown' || event.key === 's') {
+        } else if (event.key === 'Tab' || event.key === 'ArrowDown' || event.key.toLowerCase() === 's') {
             useBoost();
             //switching direction may cause cursor to go up
             cursorRow = findCursorRow(cursorCol);
-        } else if (event.key === 'p') {
+        } else if (event.key.toLowerCase() === 'p') {
             pauseGame();
             drawPause('Press space to resume game');
+        } else if (event.key === 'Enter') {
+            usePaintbrush();
         }
         drawGame();
     } else if (!gameOver) {
@@ -1098,8 +1191,8 @@ document.addEventListener('keydown', (event) => {
             drawGame();
         }
     } else {
-        //game is over-- press space to start new game
-        if (event.key === ' ') {
+        //game is over-- press enter to start new game
+        if (event.key === 'Enter') {
             newGame();
         }
     }
@@ -1121,7 +1214,7 @@ canvas.addEventListener('touchstart', (event) => {
         //1 finger: move or twist
         if (event.touches.length == 1) {
             //do a twist by default, but save x pos to see if user is moving
-            startX = event.touches[0].clientX;
+            startX = toCanvasCoordinates(event.touches[0]).x;
             doTwist = true;
         } 
         //2 fingers: boost
@@ -1140,37 +1233,67 @@ canvas.addEventListener('touchstart', (event) => {
         //unpause
         resumeGame();
         drawGame();
-    } else {
-        //game is over, start new game
-        newGame();
-    }
+    } 
+    //don't start new game on touch-- let user see high score and press new game button
 });
 
 //handle finger moving. updates so user can move finger back and forth without releasing
 canvas.addEventListener('touchmove', (event) => {
-    event.preventDefault();
-    let endX = event.touches[0].clientX;
+    if (gameRunning && event.touches.length == 1) {
+        event.preventDefault();
+        //let endX = event.touches[0].clientX;
+        let endCoords = toCanvasCoordinates(event.touches[0]);
+        doTwist = false; //cancel twist even if doesn't register movement (user isn't tapping)
 
-    //check current X pos against previous
-    if (endX - startX > 13) {
-        moveRight();
-        drawGame();
-        startX = endX;
-        doTwist = false;
-    } else if (endX - startX < -13) {
-        moveLeft();
-        drawGame();
-        startX = endX;
-        doTwist = false;
+        //check current X pos against previous
+        if (endCoords.x - startX > 19) {
+            moveRight();
+            drawGame();
+            startX = endCoords.x;
+        } else if (endCoords.x - startX < -19) {
+            moveLeft();
+            drawGame();
+            startX = endCoords.x;
+        }
     }
 });
 
+//convert touch coordinates to canvas coordinates
+function toCanvasCoordinates(touch) {
+    let rect = canvas.getBoundingClientRect();
+    let x = touch.clientX - rect.left;
+    let y = touch.clientY - rect.top;
+    
+    //scale by 
+    let scaleX = canvas.width / rect.width;
+    let scaleY = canvas.height / rect.height;
+
+    return {
+        x: x * scaleX,
+        y: y * scaleY
+    };
+}
+
 //handle finger release
-canvas.addEventListener('touchend', () => {
-    //single touch, finger has not moved
-    if (doTwist) {
-        twist();
-        drawGame();
+canvas.addEventListener('touchend', (event) => {
+    if (gameRunning) {
+        //if touch on paintbrush, use it
+        if (paintbrushOn && doTwist) { //user has not moved finger, so it's a tap
+            let endCoords = toCanvasCoordinates(event.changedTouches[0]);
+
+            let paintbrushX = canvas.width - 20 - 52; //buffer + image width
+            let paintbrushY = canvas.height - 20 - 88; //buffer + image height
+            if (endCoords.x > paintbrushX && endCoords.y > paintbrushY && endCoords.y < canvas.height) {
+                usePaintbrush();
+                drawGame();
+                doTwist = false; //prevent twist from happening after paintbrush use
+            }
+        }
+        //single touch, finger has not moved
+        if (doTwist) {
+            twist();
+            drawGame();
+        }
     }
 });
 
@@ -1208,10 +1331,9 @@ function gameLoop() {
         //adding sparkles
         pushDown(true);
 
-        //light candle if applicable
+        //turn on bonuses if relevant
         lightCandle();
-        
-        //TODO: paintbrush appears starging on 3-1
+        activatePaintbrush();
 
         drawGame();
     }
