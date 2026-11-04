@@ -1162,11 +1162,14 @@ document.addEventListener('keydown', (event) => {
         return;
     }
 
-    if (event.key === 'Tab' || event.key === ' ' || event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'ArrowLeft' || event.key === 'ArrowRight' ) {
-        event.preventDefault(); //prevent default behavior
+    //always prevent default for space & enter
+    if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
     }
 
-    if (gameRunning) { //game input while running
+    //game input while running
+    if (gameRunning) { 
+        event.preventDefault(); //prevent all default keypress behavior while game running
         if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') {
             moveLeft();
         } else if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') {
@@ -1206,7 +1209,6 @@ document.addEventListener('keydown', (event) => {
 //3+ finger tap = pause
 let startX, doTwist;
 canvas.addEventListener('touchstart', (event) => {
-    event.preventDefault();
     doTwist = false;
 
     //handle normal movements
