@@ -1127,6 +1127,19 @@ function changeStartLevel() {
     newGame();
 }
 
+//expands or collapses the section after the clicked button
+function showInstructions(button) {
+    button.classList.toggle('active');
+    let content = button.nextElementSibling;
+    if (content.style.maxHeight) {
+        content.style.maxHeight = null;
+        button.title = 'Show instructions';
+    } else {
+        content.style.maxHeight = content.scrollHeight + "px";
+        button.title = 'Hide instructions';
+    }
+}
+
 //moves the cursor to the next leftwards open column or stays in place
 function moveLeft() {
     let newCol = cursorCol;

@@ -56,8 +56,8 @@ canvas {
 .textbox {
     background-color: #d5d5d5;
     color: black;
-    width: 60%;
-    padding-left: 1.5em;
+    width: 700px;
+    padding-left: 1em;
     padding-right: 1em;
     padding-top: 1em;
     padding-bottom: 1em;
@@ -77,13 +77,52 @@ canvas {
     margin-top: 0.5em;
 }
 
+/*formatting for button to collapse/expand textboxes*/
+.collapseButton {
+    background-color: white;
+    color: black;
+    width: 100%;
+    padding: 1em;
+    margin: 0.5em auto;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: inherit;
+    text-align: left;
+    font-weight: bold;
+    border: 1px solid black;
+}
+
+.collapsableContent {
+    /* animate */
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+
+.collapseButton:after {
+  content: '\02795'; /* Unicode character for "plus" sign (+) */
+  font-size: 13px;
+  color: white;
+  float: right;
+  margin-left: 5px;
+}
+
+.active:after {
+  content: "\2796"; /* Unicode character for "minus" sign (-) */
+}
+
 @media screen and (max-width: 536px) {
     /* widths are 100% when the viewport is canvas width + margins or smaller */
-    .textbox {
+    canvas {
         width: 100%;
     }
-    
-    canvas {
+}
+
+/*responsive text boxes*/
+@media screen and (max-width: 716px) {
+    .textbox {
         width: 100%;
     }
 }
