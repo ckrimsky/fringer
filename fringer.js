@@ -421,6 +421,27 @@ function pushDown (onscreen = false) {
     });
 
     //twist the tops of the ropes at random
+    twistRopeTops(onscreen);
+
+    //adjust cursor row
+    cursorRow = findCursorRow(cursorCol);
+    
+    //don't let cursor be pushed off board-- move whichever direction has space
+    if (cursorRow < 0 && ropes.length > 0) {
+        moveLeft();
+        if (cursorRow < 0) {
+            moveRight();
+        }
+    }
+
+    //cursor cannot move anywhere: game over
+    if (cursorRow < 0) {
+        handleGameOver();
+    }
+}
+
+//helper. twists the tops of the ropes to add knots at random
+function twistRopeTops(addSparkles) {
     let i = 0;
     while (i < ropes.length - 1) {
         let r = Math.random();
@@ -453,7 +474,7 @@ function pushDown (onscreen = false) {
 
             //sparkles appear on new knots 
             let sparkle = 0;
-            if (onscreen && pushes > 2 && pushes < 10) { //TODO: check against original game
+            if (addSparkles && pushes > 2 && pushes < 10) { //TODO: check against original game
                 if (Math.random() < 1/3) {
                     sparkle = 3;
                 }
@@ -474,22 +495,6 @@ function pushDown (onscreen = false) {
             //advance over both ropes
             i += 2;
         }
-    }
-
-    //adjust cursor row
-    cursorRow = findCursorRow(cursorCol);
-    
-    //don't let cursor be pushed off board-- move whichever direction has space
-    if (cursorRow < 0 && ropes.length > 0) {
-        moveLeft();
-        if (cursorRow < 0) {
-            moveRight();
-        }
-    }
-
-    //cursor cannot move anywhere: game over
-    if (cursorRow < 0) {
-        handleGameOver();
     }
 }
 
@@ -890,6 +895,10 @@ function updateCandle(i) {
                 candleTopCol--;
             }
 
+            if (i < candleBottomCol) {
+                candleBottomCol--;
+            }
+
             //TODO: check against original
             if (candleBottomCol > ropes.length - 2) {
                 candleOn = false;
@@ -1028,7 +1037,7 @@ function drawPaintbrush() {
 
 //randomly recolors the existing ropes. doesn't preserve knots
 function usePaintbrush() {
-    if (paintbrushOn) {
+    if (paintbrushOn)  {
         //find average first knot row
         let firstKnotRow = 0;
         ropes.forEach(rope => {
@@ -1037,6 +1046,7 @@ function usePaintbrush() {
         firstKnotRow = Math.round(firstKnotRow / ropes.length);
 
         //remove all knots
+        let maxKnots = knots.length;
         knots = [];
 
         //weight ropes for recoloring
@@ -1065,14 +1075,25 @@ function usePaintbrush() {
             ropes[col].endCol = col;
         }
 
-        let numPushes = numRows - firstKnotRow; // fill to same level. pushDown updates cursorRow
-        for (let i = 0; i < numPushes; i++) {
+        let maxPushes = numRows - firstKnotRow; // fill to same level. pushDown updates cursorRow
+        for (let i = 0; i < maxPushes; i++) {
             pushDown();
+            if (knots.length > maxKnots) { 
+                break; //dont't add more knots than before
+            }
+        }
+
+        //make sure there is at least one knot
+        while (knots.length == 0)  {
+            twistRopeTops(false); //no sparkles
         }
 
         //turn off paintbrush
         paintbrushOn = false;
         levelsUntilNextPaintbrush = 2; //can't use next level
+
+        //also turn off candle
+        candleOn = false;
     }
 }
 
