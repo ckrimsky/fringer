@@ -1253,9 +1253,9 @@ document.addEventListener('keydown', (event) => {
 //swipe right = right arrow
 //2 finger tap = tab
 //3+ finger tap = pause
-let startX, doTwist;
+let startX, isTap;
 canvas.addEventListener('touchstart', (event) => {
-    doTwist = false;
+    isTap = false;
 
     //handle normal movements
     if (gameRunning) {
@@ -1263,7 +1263,7 @@ canvas.addEventListener('touchstart', (event) => {
         if (event.touches.length == 1) {
             //do a twist by default, but save x pos to see if user is moving
             startX = toCanvasCoordinates(event.touches[0]).x;
-            doTwist = true;
+            isTap = true;
         } 
         //2 fingers: boost
         else if (event.touches.length == 2) {
@@ -1277,10 +1277,9 @@ canvas.addEventListener('touchstart', (event) => {
             pauseGame();
             drawPause('Tap to resume game');
         }
-    } else if (!gameOver) {
-        //unpause
-        resumeGame();
-        drawGame();
+    } else if (!gameOver && event.touches.length == 1) {
+        //unpause if tap
+        isTap = true;
     } 
     //don't start new game on touch-- let user see high score and press new game button
 });
@@ -1291,7 +1290,7 @@ canvas.addEventListener('touchmove', (event) => {
         event.preventDefault();
         //let endX = event.touches[0].clientX;
         let endCoords = toCanvasCoordinates(event.touches[0]);
-        doTwist = false; //cancel twist even if doesn't register movement (user isn't tapping)
+        isTap = false;
 
         //check current X pos against previous
         if (endCoords.x - startX > 19) {
@@ -1303,6 +1302,9 @@ canvas.addEventListener('touchmove', (event) => {
             drawGame();
             startX = endCoords.x;
         }
+    } else if (!gameRunning && !gameOver) {
+        //let user move finger over canvas when game paused
+        isTap = false;
     }
 });
 
@@ -1326,7 +1328,7 @@ function toCanvasCoordinates(touch) {
 canvas.addEventListener('touchend', (event) => {
     if (gameRunning) {
         //if touch on paintbrush, use it
-        if (paintbrushOn && doTwist) { //user has not moved finger, so it's a tap
+        if (paintbrushOn && isTap) { //user has not moved finger, so it's a tap
             let endCoords = toCanvasCoordinates(event.changedTouches[0]);
 
             let paintbrushX = canvas.width - 20 - 52; //buffer + image width
@@ -1334,14 +1336,18 @@ canvas.addEventListener('touchend', (event) => {
             if (endCoords.x > paintbrushX && endCoords.y > paintbrushY && endCoords.y < canvas.height) {
                 usePaintbrush();
                 drawGame();
-                doTwist = false; //prevent twist from happening after paintbrush use
+                isTap = false; //prevent twist from happening after paintbrush use
             }
         }
-        //single touch, finger has not moved
-        if (doTwist) {
+        //twist if user tapped
+        if (isTap) {
             twist();
             drawGame();
         }
+    } else if (!gameOver && isTap) {
+        //unpause on tap
+        resumeGame();
+        drawGame();
     }
 });
 
