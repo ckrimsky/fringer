@@ -10,7 +10,15 @@ const lowBuffer = 60;
 let loomHeight = canvas.height - (rowHeight * numRows + lowBuffer);
 
 //define rope colors (most --> least common)
-const colorCodes = ['#4e9ea3', '#8b1a03', '#547e11', '#d5b344', '#642e84'];
+//colorblind friendly palettes found and checked at https://conceptviz.app/tools/colorblind-friendly-palettes
+const colorPalettes =  [['#44AA99', '#CC6677', '#999933', '#DDCC77', '#882255'], //from paul tol muted
+                        ['#009E73', '#E69F00', '#0072B2', '#CC79A7', '#F0E442'], //from okabe ito
+                        ['#EE6677', '#4477AA', '#CCBB44', '#AA3377', '#66CCEE'], //from paul tol bright
+                        ['#097487', '#ac0b33', '#f56659', '#71475D', '#E69790'], //my own palette, checked for colorblind friendliness
+                        ['#7ab953', '#50c7cf', '#29780c', '#224fc2', '#a677b6'] //also my own palette
+                    ];
+
+let colorCodes = colorPalettes[0];   
 
 //cursor
 let cursorCol = 0;
@@ -148,10 +156,14 @@ function initLevel() {
     candleOn = false;
     candlesThisStage = 0;
     
-    //paintbrushes last for 3 stages and don't appear again for another 3
+    //things that only happen every 3 stages (on level change)
     if (level % 3 == 0) { 
+        //paintbrushes last for 3 stages and don't appear again for another 3
         paintbrushOn = false;
-        levelsUntilNextPaintbrush--;    
+        levelsUntilNextPaintbrush--;
+
+        //color palette changes
+        colorCodes = colorPalettes[Math.floor(level/3)%colorPalettes.length];
     }
 
     ropes = [];
