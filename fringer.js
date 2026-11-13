@@ -28,6 +28,7 @@ let cursorLeft = true; //true is left, false is right
 //game state
 let gameRunning = false; //if game is not paused
 let gameOver = false; //if game is lost
+let canvasVisible = true; //false when user on settings tab
 let numBoosts = 0;
 const maxBoosts = 20;
 let level = 0;
@@ -56,18 +57,30 @@ if (isNaN(highScore)) {
     highScore = 0;
 }
 
-//retreive button values from local storage and modify buttons accordingly
-let startLevel = parseInt(localStorage.getItem('startLevel'));
-if (isNaN(startLevel) || startLevel < 0 || startLevel > 9) {
-    startLevel = 0;
-    document.getElementById('startLevel').value = 0;
-} else {
-    document.getElementById('startLevel').value = startLevel;
-    level = startLevel;
+//default settings
+const defaultSettings = {
+    startLevel: 0,
+    bonusesOn: true,
+    infiniteMode: false
 }
 
-let bonusesOn = localStorage.getItem('bonusesOn') === 'true';
-updateBonusButton();
+//settings displayed in tab saved in dict
+let settings = localStorage.getItem('settings');
+if (settings == null) {
+    settings = defaultSettings;
+} else {
+    try {
+        settings = JSON.parse(settings);
+        level = settings.startLevel;
+    } catch {
+        settings = defaultSettings;
+    }
+}
+
+//properly set settings window
+document.getElementById('startLevel').value = settings.startLevel;
+document.getElementById('bonusesOn').checked = settings.bonusesOn;
+document.getElementById('infiniteMode').checked = settings.infiniteMode;
 
 let ropes = [];
 let knots = [];
@@ -208,7 +221,7 @@ function initLevel() {
 }
 
 //initialize new game
-function newGame(inputLevel = startLevel) {
+function newGame(inputLevel = settings.startLevel) {
     //update high score from prev game
     updateHighScore();
 
@@ -224,6 +237,11 @@ function newGame(inputLevel = startLevel) {
 
     gameOver = false;
     resumeGame();
+
+    //if canvas is not shown, unclick the settings button
+    if (!canvasVisible) {
+        settingsButton();
+    }
 
     drawGame();
 }
@@ -306,7 +324,12 @@ function comb() {
     if (knots.length == 0 && ropes.length == 0) {
         //increase score based on level
         calculateLevelScore();
-        level++;
+
+        //in infinite mode, the level never advances
+        if (!settings.infiniteMode){
+            level++;
+        }
+
         initLevel();
     } else {
         //adjust cursor col if ropes have been removed but still exist
@@ -775,6 +798,10 @@ function pauseButton() {
         drawPause('Paused');
     } else {
         resumeGame();
+        //if canvas is not shown, unclick the settings button
+        if (!canvasVisible) {
+            settingsButton();
+        }
         drawGame();
     }
 }
@@ -862,7 +889,7 @@ function drawSparkles() {
 function lightCandle() {
     //candle only lights when already unlit, after first push, starting at level 2-2
     //only lights candlesPerStage times per level
-    if (bonusesOn && !candleOn && pushes > 0 && level >= 4 && candlesThisStage < candlesPerStage) {
+    if (settings.bonusesOn && !candleOn && pushes > 0 && level >= 4 && candlesThisStage < candlesPerStage) {
         //don't light candle if it was just turned off        
         if (candlesThisStage > 0 && pushes - candleStart < 4) {
             return;
@@ -1030,7 +1057,7 @@ function burnCandle(){
 //activates the paintbrush bonus if appropriate
 function activatePaintbrush() { 
     //paintbrush starts at level 3-1
-    if (bonusesOn && !paintbrushOn && pushes >= 1 && level >= 6 && levelsUntilNextPaintbrush < 1) {
+    if (settings.bonusesOn && !paintbrushOn && pushes >= 1 && level >= 6 && levelsUntilNextPaintbrush < 1) {
         //appears randomly
         if (Math.random() < 1/5) {
             paintbrushOn = true;
@@ -1109,34 +1136,45 @@ function usePaintbrush() {
     }
 }
 
+//shows the settings instead of the game, or vise versa
+function settingsButton() {
+    canvasVisible = !canvasVisible;
+    let canvas = document.getElementById('canvas');
+    let settings = document.getElementById('settings');
 
-//toggles bonuses on or off
-function toggleBonuses() {
-    bonusesOn = !bonusesOn;
-    //turn off bonuses
-    if (!bonusesOn) {
-        candleOn = false;
-        paintbrushOn = false;
-    }
-    localStorage.setItem('bonusesOn', bonusesOn);
-    updateBonusButton();
-}
-
-//updates the bonus button to display on or off symbol
-function updateBonusButton() {
-    if (bonusesOn) {
-        document.getElementById('bonus').innerText = bonusOnSymbol;
-        
-    } else {
-        document.getElementById('bonus').innerText = bonusOffSymbol;
+    if (!canvasVisible) {
+        //show settings, hide game
+        pauseGame();
+        canvas.style.display = 'none';
+        settings.style.display = 'block';
+    } else { 
+        //show paused game, hide settings
+        canvas.style.display = 'block';
+        settings.style.display = 'none';
+        drawPause('Paused');
     }
 }
 
 //changes the default starting level to the selected value and begins new game
 function changeStartLevel() {
-    startLevel = document.getElementById('startLevel').value;
-    localStorage.setItem('startLevel', startLevel);
-    newGame();
+    settings.startLevel = document.getElementById('startLevel').value;
+    localStorage.setItem('settings', JSON.stringify(settings));
+}
+
+//updates infinite mode on/off
+function checkInfiniteMode(checkBox) {
+    settings.infiniteMode = checkBox.checked;
+    localStorage.setItem('settings', JSON.stringify(settings));
+}
+
+//updates bonuses on/off
+function checkBonusesOn(checkBox) {
+    settings.bonusesOn = checkBox.checked;
+    localStorage.setItem('settings', JSON.stringify(settings));
+    if (!settings.bonusesOn) {
+        candleOn = false;
+        paintbrushOn = false;
+    }
 }
 
 //expands or collapses the section after the clicked button
@@ -1205,6 +1243,11 @@ document.addEventListener('keydown', (event) => {
     if (parsed > 0 && parsed < 10) {
         let startLevel = (parseInt(event.key) - 1) * 3;
         newGame(startLevel);
+        return;
+    }
+
+    //following only apply when canvas is visible
+    if (!canvasVisible) {
         return;
     }
 
@@ -1392,6 +1435,9 @@ function gameLoop() {
         drawGame();
     }
 }
+
+//show canvas tab
+document.getElementById('canvas').style.display = 'block';
 
 //initialize game
 initLevel();

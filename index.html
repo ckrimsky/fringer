@@ -13,20 +13,59 @@
         <button id="pause" title="Play" aria-label="Play" onclick="pauseButton()" class="buttonClass">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 2v16l12-8z"></path></svg>
         </button>
-        <button id="bonus" title="Toggle bonuses" onclick="toggleBonuses()" class="buttonClass">☆</button>
-        <select id="startLevel" title="Select starting level" onchange="changeStartLevel()" class="buttonClass">
-            <option value="0" selected="selected">1</option>
-            <option value="3">2</option>
-            <option value="6">3</option>
-            <option value="9">4</option>
-            <option value="12">5</option>
-            <option value="15">6</option>
-            <option value="18">7</option>
-            <option value="21">8</option>
-            <option value="24">9</option>
-        </select>
+        <button id="settingsButton" title="Settings" onclick="settingsButton()" class="buttonClass">⚙</button>
+        
     </div>
-    <canvas id="fringerCanvas" width="520" height="675"></canvas>
+    <div id="canvas" class="tabContent">
+        <canvas id="fringerCanvas" width="520" height="675"></canvas>
+    </div>
+
+    <div id="settings" class="tabContent">
+        <div class="settings">
+            <h3>Settings</h3>
+            <table>
+                <tr>
+                    <td><label for="startLevel">Default level: </label></td>
+                    <td>
+                        <select id="startLevel" onchange="changeStartLevel()">
+                            <option value="0" selected="selected">1</option>
+                            <option value="3">2</option>
+                            <option value="6">3</option>
+                            <option value="9">4</option>
+                            <option value="12">5</option>
+                            <option value="15">6</option>
+                            <option value="18">7</option>
+                            <option value="21">8</option>
+                            <option value="24">9</option>
+                        </select>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td><label for="bonusesOn">Bonuses on: </label></td>
+                    <td>
+                        <label class="checkbox">
+                            <input type="checkbox" id="bonusesOn" onclick="checkBonusesOn(this)">
+                            <span></span>
+                        </label>
+                    </td>
+
+                </tr>
+                
+                <tr>
+                    <td><label for="infiniteMode">Infinite mode: </label></td>
+                    <td>
+                        <label class="checkbox">
+                            <input type="checkbox" id="infiniteMode" onclick="checkInfiniteMode(this)">
+                            <span></span>
+                        </label>
+                    </td>
+
+                </tr>
+            </table>
+            
+        </div>
+    </div>
     <div class="textbox">
         <p>
             This is a <a href="https://github.com/ckrimsky/fringer">JavaScript implementation</a> of the game Fringer, which was designed by Alexey Pajitnov and released in Microsoft Entertainment Pack: The Puzzle Collection in 1997.

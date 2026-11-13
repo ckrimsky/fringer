@@ -4,10 +4,12 @@ body {
 }
 
 canvas {
-    border: 2px solid #000;      
+    border: 2px solid #000;    
     border-radius: 10px;
     font-family:'Courier New', Courier, monospace;
     box-sizing: border-box;
+    display: block;
+    margin-inline: auto;
 }
 
 .buttonContainer {
@@ -77,6 +79,74 @@ canvas {
     margin-top: 0.5em;
 }
 
+/*hide all tabs by default*/
+.tabContent {
+    display: none;
+    text-align: center;
+}
+
+.settings {
+    border: 2px solid #000;      
+    border-radius: 10px;
+    background-color: #000;
+    /* settings tab is same size as canvas, maintain aspect ratio
+    // width is canvas width + 2px border*/
+    width: 524px;
+    aspect-ratio: 524/679;
+    box-sizing: border-box;
+    margin: 0 auto;
+    font-family:'Courier New', Courier, monospace;
+    font-size: 19px;
+    color: white;
+    text-align: left;
+    padding-left: 70px;
+    padding-top:40px;
+    user-select: none;
+}
+
+.settings td {
+    padding-bottom: 20px;
+    padding-right: 20px;
+}
+
+.settings select {
+    font-family: inherit;
+    font-size: 15px;
+}
+
+
+/* format settings checkboxes */
+.checkbox input {
+  visibility: hidden;/* <-- Hide the default checkbox. The rest is to hide and allow tabbing, which display:none prevents */
+  display: block;
+  height: 0;
+  width: 0;
+  position: absolute;
+  overflow: hidden;
+}
+
+.checkbox span {
+  height: 15px;
+  width: 15px;
+  border: 1px solid white;
+  background: black;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.checkbox :hover + span {
+    background: #515050;
+}
+
+.checkbox input:checked + span {
+  background: white;
+}
+
+.checkbox:has(input:checked):hover span{
+    background: #d5d5d5;
+}
+
+
 /*formatting for button to collapse/expand textboxes*/
 .collapseButton {
     background-color: white;
@@ -109,13 +179,14 @@ canvas {
   margin-left: 5px;
 }
 
-.active:after {
+.collapseButton.active:after {
   content: "\2796"; /* Unicode character for "minus" sign (-) */
 }
 
 @media screen and (max-width: 536px) {
     /* widths are 100% when the viewport is canvas width + margins or smaller */
-    canvas {
+    canvas,
+    .settings {
         width: 100%;
     }
 }
