@@ -878,7 +878,7 @@ function pauseGame() {
     gameRunning = false;
 
     stopSoundEffects(); 
-    pauseMusic();
+    pauseMusic(true);
 }
 
 //changes the gameRunning flag and updates the play/pause button
@@ -1232,7 +1232,7 @@ function updateMuteButton() {
 
         //end all sounds currently playing
         stopSoundEffects();
-        pauseMusic();
+        pauseMusic(false);
     } else {
         //hide X and show soundwaves
         button.querySelector('#muteMark').setAttribute('display', 'none');
@@ -1302,6 +1302,12 @@ function stopSoundEffects() {
 function checkMusicOn(checkBox) {
     settings.musicOn = checkBox.checked;
     localStorage.setItem('settings', JSON.stringify(settings));
+
+    //when turning music off, delete current buffer
+    if (!settings.musicOn && currentTrack.length > 1) {
+        currentTrack[1].stop();
+        currentTrack.pop();
+    }
 }
 
 //plays a sound effect
@@ -1397,17 +1403,17 @@ async function startOrResumeMusic() {
     }
 }
 
-//pauses music
-function pauseMusic() {
+//suspends context when input is true or stops current music track
+function pauseMusic(suspend) {
     if (currentTrack.length > 0) {
-         if (!gameOver) {
+         if (!gameOver && suspend) {
             //not game over: normal pause
             audioCtx.suspend();
          } else {
             //gameOver: we stop playing the music audio but do not suspend context
             currentTrack[1].stop();
+            currentTrack.pop();
          }
-        
     }
 }
 
