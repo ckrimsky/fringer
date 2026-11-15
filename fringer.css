@@ -48,7 +48,14 @@ canvas {
     background-color: #b5b5b5;
 }
 
-#pause svg {
+#muteButton svg {
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    fill: currentColor;
+}
+
+#pauseButton svg {
     width: 1em;
     height: 1em;
     vertical-align: middle;

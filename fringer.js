@@ -48,8 +48,21 @@ let levelsUntilNextPaintbrush = 0; //resets every 3 stages
 //buttons
 const pauseIconPath = 'M6 2h4v16H6zM14 2h4v16h-4z'; //svg paths provided by copilot
 const playIconPath = 'M7 2v16l12-8z';
-const bonusOnSymbol = '★';
-const bonusOffSymbol = '☆';
+
+//audio
+const audioCtx = new AudioContext();
+
+//play all sounds at 1/3 volume
+const gainNode = audioCtx.createGain();
+gainNode.gain.setValueAtTime(0.33, audioCtx.currentTime);
+
+//sounds will be loaded into these later
+const soundEffects = {};
+const musicTracks = [];
+
+//keep track of currently playing sounds & music
+const activeSounds = new Map();
+let currentTrack = []; //stored as [trackIndex, buffer]
 
 //retreive high score from local storage
 let highScore = parseInt(localStorage.getItem('highScore'));
@@ -61,7 +74,10 @@ if (isNaN(highScore)) {
 const defaultSettings = {
     startLevel: 0,
     bonusesOn: true,
-    infiniteMode: false
+    infiniteMode: false,
+    soundOn: true,
+    musicOn: true,
+    muteAll: true //by default we mute, but unmuting will play all sounds
 }
 
 //settings displayed in tab saved in dict
@@ -70,17 +86,20 @@ if (settings == null) {
     settings = defaultSettings;
 } else {
     try {
-        settings = JSON.parse(settings);
+        settings = {...defaultSettings, ...JSON.parse(settings)};
         level = settings.startLevel;
     } catch {
         settings = defaultSettings;
     }
 }
 
-//properly set settings window
+//properly set UI
 document.getElementById('startLevel').value = settings.startLevel;
 document.getElementById('bonusesOn').checked = settings.bonusesOn;
 document.getElementById('infiniteMode').checked = settings.infiniteMode;
+document.getElementById('soundOn').checked = settings.soundOn;
+document.getElementById('musicOn').checked = settings.musicOn;
+updateMuteButton();
 
 let ropes = [];
 let knots = [];
@@ -170,13 +189,26 @@ function initLevel() {
     candlesThisStage = 0;
     
     //things that only happen every 3 stages (on level change)
-    if (level % 3 == 0) { 
+    if (level % 3 == 0 && !settings.infiniteMode) { 
         //paintbrushes last for 3 stages and don't appear again for another 3
         paintbrushOn = false;
         levelsUntilNextPaintbrush--;
 
         //color palette changes
         colorCodes = colorPalettes[Math.floor(level/3)%colorPalettes.length];
+
+        //play sound effect
+        playSoundEffect(soundEffects.newLevel);
+
+        //play next track, avoid advancing twice on newGame
+        if (level != settings.startLevel) {
+            playNextTrack();
+        }
+    }
+
+    //paintbrushes in infinite mode: can appear 4 stages after use, don't disappear on their own
+    if (settings.infiniteMode && !paintbrushOn) {
+        levelsUntilNextPaintbrush -= 0.25;
     }
 
     ropes = [];
@@ -233,6 +265,9 @@ function newGame(inputLevel = settings.startLevel) {
     paintbrushOn = false;
     levelsUntilNextPaintbrush = 0;
 
+    //advance to next track
+    playNextTrack();
+
     initLevel();
 
     gameOver = false;
@@ -270,11 +305,19 @@ function twist() {
         //add boost if relevant
         if (knots[i].sparkles > 0) {
             numBoosts = Math.min(numBoosts + 1, maxBoosts);
+            playSoundEffect(soundEffects.getBoost);
         }
         //remove knot. assume will only be on knot if cursor fits the knot's direction
         knots.splice(i, 1);
         //remove ropes if untied
         comb();
+    }
+
+    //play twist noise depending on direction
+    if (cursorLeft) {
+        playSoundEffect(soundEffects.twistLeft);
+    } else {
+        playSoundEffect(soundEffects.twistRight);
     }
 
     //update cursor
@@ -314,6 +357,9 @@ function comb() {
             if (cursorCol > i) {
                 cursorCol--;
             }
+
+            //play sound effect
+            playSoundEffect(soundEffects.ropeClear);
         } else {
             //only increase i when we haven't deleted a rope
             i++;
@@ -350,6 +396,8 @@ function useBoost () {
     if (numBoosts > 0) {
         cursorLeft = !cursorLeft;
         numBoosts--;
+
+        playSoundEffect(soundEffects.useBoost);
     }
 }
 
@@ -435,6 +483,9 @@ function pushDown (onscreen = false) {
     //track visible pushDowns
     if (onscreen) {
         pushes++;
+
+        //only play sound effects when onscreen
+        playSoundEffect(soundEffects.pushDown);
     }
     //remove candle rope if relevant
     burnCandle();
@@ -452,6 +503,9 @@ function pushDown (onscreen = false) {
             //GAME OVER!
             handleGameOver();
             return;
+        } else if (knot.row == 0) {
+            //play warning sound when about to lose
+            playSoundEffect(soundEffects.warning);
         }
     });
 
@@ -535,8 +589,13 @@ function twistRopeTops(addSparkles) {
 
 //ends the game
 function handleGameOver() {
-    pauseGame();
+    //prevent multiple calls
+    if (gameOver) {
+        return;
+    }
+
     gameOver = true;
+    pauseGame();
 
     //gain 30 points per unused boost
     score += 30 * numBoosts;
@@ -548,6 +607,13 @@ function handleGameOver() {
     //update high score & redraw text accordingly
     let scoreUpdated = updateHighScore();
     drawLoomAndText(scoreUpdated);
+
+    //play appropriate sound effect
+    if (scoreUpdated) {
+        playSoundEffect(soundEffects.highScore);
+    } else {
+        playSoundEffect(soundEffects.gameOver);
+    }
 
     drawGameOver();
 }
@@ -810,25 +876,25 @@ function pauseButton() {
 function pauseGame() {
     setPauseButtonIcon(playIconPath, 'Play');
     gameRunning = false;
+
+    stopSoundEffects(); 
+    pauseMusic();
 }
 
 //changes the gameRunning flag and updates the play/pause button
 function resumeGame() {
     setPauseButtonIcon(pauseIconPath, 'Pause');
     gameRunning = true;
+
+    startOrResumeMusic();
 }
 
 //sets the svg path and label
 function setPauseButtonIcon(path, label) {
-    const button = document.getElementById('pause');
+    const button = document.getElementById('pauseButton');
     button.querySelector('path').setAttribute('d', path);
     button.title = label;
     button.setAttribute('aria-label', label);
-}
-
-//helper
-function drawLevelSelect() {
-    drawMessage('Or enter number to select level', 20, canvas.height/2+70);
 }
 
 //helper. writes the input message centered
@@ -902,6 +968,9 @@ function lightCandle() {
             candleTopCol = Math.floor(Math.random() * ropes.length);
             candleBottomCol = Math.floor(Math.random() * ropes.length);
             candlesThisStage++;
+
+            //sound effect
+            playSoundEffect(soundEffects.showCandle);
         }
     }
 }
@@ -1040,6 +1109,9 @@ function burnCandle(){
                     ropes[j].endCol = j + total;
                 }
 
+                //play sound effect
+                playSoundEffect(soundEffects.burnCandle);
+
                 //remove any remaining straightened ropes
                 comb();
 
@@ -1062,6 +1134,8 @@ function activatePaintbrush() {
         if (Math.random() < 1/5) {
             paintbrushOn = true;
             levelsUntilNextPaintbrush = 1;
+
+            playSoundEffect(soundEffects.showPaintbrush);
         }
     }
 }
@@ -1133,6 +1207,40 @@ function usePaintbrush() {
 
         //also turn off candle
         candleOn = false;
+
+        playSoundEffect(soundEffects.usePaintbrush);
+    }
+}
+
+//mutes or unmutes the game
+function muteButton() {
+    settings.muteAll = !settings.muteAll;
+    localStorage.setItem('settings', JSON.stringify(settings));
+    
+    updateMuteButton();   
+}
+
+//updates the mute button svg
+function updateMuteButton() {
+    let button = document.getElementById('muteButton');
+    if (settings.muteAll) {
+        //show X and hide soundwaves. again, svg paths provided by copilot
+        button.querySelector('#muteMark').removeAttribute('display');
+        button.querySelector('#volumeWaves').setAttribute('display', 'none');
+        button.title = 'Unmute';
+        button.setAttribute('aria-label', 'Unmute');
+
+        //end all sounds currently playing
+        stopSoundEffects();
+        pauseMusic();
+    } else {
+        //hide X and show soundwaves
+        button.querySelector('#muteMark').setAttribute('display', 'none');
+        button.querySelector('#volumeWaves').removeAttribute('display');
+        button.title = 'Mute';
+        button.setAttribute('aria-label', 'Mute');
+
+        startOrResumeMusic();
     }
 }
 
@@ -1176,6 +1284,188 @@ function checkBonusesOn(checkBox) {
         paintbrushOn = false;
     }
 }
+
+//turn sound effects on/off
+function checkSoundOn(checkBox) {
+    settings.soundOn = checkBox.checked;
+    localStorage.setItem('settings', JSON.stringify(settings));
+}
+
+//turns off the active sound effects
+function stopSoundEffects() {
+    for (let [buffer, source] of activeSounds) {
+        source.stop();
+    }
+}
+
+//turn music on/off
+function checkMusicOn(checkBox) {
+    settings.musicOn = checkBox.checked;
+    localStorage.setItem('settings', JSON.stringify(settings));
+}
+
+//plays a sound effect
+function playSoundEffect(audioBuffer) {
+    //make sure sound is on and input sound exists
+    if (!settings.muteAll && settings.soundOn && audioBuffer != null) {
+        //prevent overlapping same sound effect
+        if (activeSounds.has(audioBuffer)) {
+            return;
+        }
+
+        const trackSource = audioCtx.createBufferSource();
+        trackSource.buffer = audioBuffer;
+        // trackSource.connect(audioCtx.destination);
+        trackSource.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        //remove from acive sounds after playing
+        trackSource.onended = () => activeSounds.delete(audioBuffer);
+
+        trackSource.start();
+        activeSounds.set(audioBuffer, trackSource);
+    }
+}
+
+//plays a music track
+function playMusic(trackNum) {
+    //sanity check
+    if (!Number.isInteger(trackNum) || trackNum < 0 && trackNum >= musicTrackPaths.length) {
+        return;
+    }
+
+    //stop any existing music, whether muted or not
+    if (currentTrack.length > 1) {
+        //do nothing if told to play same track
+        if (currentTrack[0] === trackNum) {
+            return;
+        } else {
+            //pause playing music
+            currentTrack[1].stop();
+        }
+    }
+
+    //make sure sound is on
+    if (!settings.muteAll && settings.musicOn) {
+        let audioBuffer = musicTracks[trackNum];
+
+        //if audio hasn't loaded yet, save track number
+        if (audioBuffer == null) {
+            currentTrack = [trackNum];
+            return;
+        }
+
+        const trackSource = audioCtx.createBufferSource();
+        trackSource.buffer = audioBuffer;
+        
+        //background music loops
+        trackSource.loop = true;
+
+        //route through gain node so not too loud
+        trackSource.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        trackSource.start();
+        currentTrack = [trackNum, trackSource];
+    } else {
+        //otherwise keep track of current track number
+        // (if user mutes on level 1 & unmutes on level 2, the track should advance)
+        currentTrack = [trackNum];
+    }
+}
+
+//starts music from first track or resumes existing music
+async function startOrResumeMusic() {
+    if (gameRunning && !settings.muteAll) {
+        try {
+            //resume audio context to allow all sounds
+            await audioCtx.resume();
+        } catch (error) {
+            return;
+        }
+
+        //start tracks if none already playing and music is on
+        if (settings.musicOn) {
+            if (currentTrack.length == 1) {
+                //start track from beginning
+                playMusic(currentTrack[0]);
+            }
+            else if (currentTrack.length < 1) {
+                playMusic(0);
+            }
+        }
+    }
+}
+
+//pauses music
+function pauseMusic() {
+    if (currentTrack.length > 0) {
+         if (!gameOver) {
+            //not game over: normal pause
+            audioCtx.suspend();
+         } else {
+            //gameOver: we stop playing the music audio but do not suspend context
+            currentTrack[1].stop();
+         }
+        
+    }
+}
+
+//plays the next track, or starts the first one
+function playNextTrack() {
+    if (currentTrack.length > 0) {
+        let nextTrack = (currentTrack[0] + 1) % musicTrackPaths.length;
+        playMusic(nextTrack);
+    } else { 
+        playMusic(0);
+    }
+}
+
+
+//loads an audio buffer
+async function loadAudioFile(path) {
+    const response = await fetch(path);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    return audioBuffer;
+}
+
+//load all audio samples
+async function loadSoundEffects() {
+    soundEffects.twistLeft = await loadAudioFile('audio/FRINGER_LEFTWAV_WAVE.wav');
+    soundEffects.twistRight = await loadAudioFile('audio/FRINGER_RIGHTWAV_WAVE.wav');
+    soundEffects.ropeClear = await loadAudioFile('audio/FRINGER_DELLINEWAV_WAVE.wav');
+    soundEffects.getBoost = await loadAudioFile('audio/FRINGER_GETSTARWAV_WAVE.wav');
+    soundEffects.useBoost = await loadAudioFile('audio/FRINGER_USESTARWAV_WAVE.wav');
+    soundEffects.pushDown = await loadAudioFile('audio/FRINGER_MOVELINEWAV_WAVE.wav');
+    soundEffects.warning = await loadAudioFile('audio/FRINGER_LASTLINEWAV_WAVE.wav');
+    soundEffects.showCandle = await loadAudioFile('audio/FRINGER_NEWCANDLEWAV_WAVE.wav');
+    soundEffects.burnCandle = await loadAudioFile('audio/FRINGER_CANDLEBURNWAV_WAVE.wav');
+    soundEffects.showPaintbrush = await loadAudioFile('audio/FRINGER_NEWBRUSHWAV_WAVE.wav');
+    soundEffects.usePaintbrush = await loadAudioFile('audio/FRINGER_USEBRUSHWAV_WAVE.wav');
+    soundEffects.highScore = await loadAudioFile('audio/FRINGER_ENDBESTWAV_WAVE.wav');
+    soundEffects.gameOver = await loadAudioFile('audio/FRINGER_ENDCURRWAV_WAVE.wav');
+    soundEffects.newLevel = await loadAudioFile('audio/FRINGER_NEWLEVELWAV_WAVE.wav');
+}
+
+//load all music tracks
+const musicTrackPaths = [
+    'music/Track1.ogg',
+    'music/Track2.ogg',
+    'music/Track3.ogg',
+    'music/Track4.ogg'
+];
+async function loadMusic() {
+    musicTracks.push(...await Promise.all(musicTrackPaths.map(loadAudioFile)));
+
+    //if game started before music loaded, start music
+    if (currentTrack.length === 1 && !settings.muteAll && settings.musicOn && gameRunning) {
+        startOrResumeMusic();
+    }
+}
+//buffer sounds on window load
+loadSoundEffects(); 
+loadMusic();
 
 //expands or collapses the section after the clicked button
 function showInstructions(button) {
@@ -1234,11 +1524,17 @@ function moveRight() {
 
 //handle keyboard input
 document.addEventListener('keydown', (event) => {
-    //begin new games
+    //key inputs that apply any time
     if (event.key.toLowerCase() === 'n') {
+        //new game
         newGame();
         return;
+    } else if (event.key.toLowerCase() === 'm') {
+        //mute/unmute
+        muteButton();
+        return;
     }
+    //new game of input level
     let parsed = parseInt(event.key); 
     if (parsed > 0 && parsed < 10) {
         let startLevel = (parseInt(event.key) - 1) * 3;

@@ -10,8 +10,15 @@
 <body>
     <div class="buttonContainer">
         <button title="New game" onclick="newGame()" class="buttonClass">↻</button>
-        <button id="pause" title="Play" aria-label="Play" onclick="pauseButton()" class="buttonClass">
+        <button id="pauseButton" title="Play" aria-label="Play" onclick="pauseButton()" class="buttonClass">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 2v16l12-8z"></path></svg>
+        </button>
+        <button id="muteButton" title="Unmute" aria-label="Unmute" onclick="muteButton()" class="buttonClass">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 4V5L7 9H3z"></path>
+                <path id="muteMark" d="m16 9 5 6m0-6-5 6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path>
+                <path id="volumeWaves" d="M16 9a5 5 0 0 1 0 6m2.5-8.5a9 9 0 0 1 0 11" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" display="none"></path>
+            </svg>
         </button>
         <button id="settingsButton" title="Settings" onclick="settingsButton()" class="buttonClass">⚙</button>
         
@@ -49,7 +56,6 @@
                             <span></span>
                         </label>
                     </td>
-
                 </tr>
                 
                 <tr>
@@ -60,7 +66,24 @@
                             <span></span>
                         </label>
                     </td>
-
+                </tr>
+                <tr>
+                    <td><label for="soundOn">Play sound effects: </label></td>
+                    <td>
+                        <label class="checkbox">
+                            <input type="checkbox" id="soundOn" onclick="checkSoundOn(this)">
+                            <span></span>
+                        </label>
+                    </td>
+                </tr>
+                <tr>
+                    <td><label for="musicOn">Play music: </label></td>
+                    <td>
+                        <label class="checkbox">
+                            <input type="checkbox" id="musicOn" onclick="checkMusicOn(this)">
+                            <span></span>
+                        </label>
+                    </td>
                 </tr>
             </table>
             
