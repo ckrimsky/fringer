@@ -59,6 +59,14 @@ canvas {
     width: 1em;
     height: 1em;
     vertical-align: middle;
+    fill: currentColor;
+}
+
+#settingsButton svg {
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    fill: currentColor;
 }
 
 /*formatting for textboxes*/
@@ -92,6 +100,7 @@ canvas {
     text-align: center;
 }
 
+/* format settings text */
 .settings {
     border: 2px solid #000;      
     border-radius: 10px;
@@ -190,11 +199,17 @@ canvas {
   content: "\2796"; /* Unicode character for "minus" sign (-) */
 }
 
+/* widths are 100% when the viewport is canvas width + margins or smaller */
 @media screen and (max-width: 536px) {
-    /* widths are 100% when the viewport is canvas width + margins or smaller */
-    canvas,
+    canvas{
+        width: 100%;
+    }
+
+    /* settings page scales for mobile */
     .settings {
         width: 100%;
+        padding-left: 15%;
+        font-size: 1em;
     }
 }
 

@@ -825,13 +825,20 @@ function drawLoomAndText(newHighScore = false) {
     //level: top left
     ctx.textAlign = 'left';
     let displayLevel = '';
+    let levelPadding = 15;
     if (level < levels.length) {
         displayLevel = originalLevel(level).toString() + '-' + originalStage(level).toString();
     } else {
         //bonus levels
         displayLevel = 'B-' + (level - levels.length + 1).toString();
     }
-    ctx.fillText(displayLevel, margin+15, bottomRow);
+
+    //show infinity sign on infinite mode
+    if (settings.infiniteMode) {
+        displayLevel += ' ∞';
+        levelPadding = 7;
+    }
+    ctx.fillText(displayLevel, margin+levelPadding, bottomRow);
 
     //score: right
     ctx.textAlign = 'right';
@@ -1705,9 +1712,9 @@ document.addEventListener('visibilitychange', () => {
 document.addEventListener('blur', () => {
     if (gameRunning) {
         pauseGame();
-        drawPause('Press space to resume game');
+        drawPause('Paused');
     }
-})
+});
 
 //the wait time between loops is dependent on level
 function sleep(time) {

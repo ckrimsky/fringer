@@ -7,3 +7,5 @@ I currently have no plans to implement the bar slowly pushing knots down the scr
 Origininal sound effects retreived from [The Sounds Resource](https://sounds.spriters-resource.com/pc_computer/microsoftentertainmentpackthepuzzlecollection/asset/438174/). Original soundtrack with Windows sound font recorded by [Aydos Barbados on Youtube](https://www.youtube.com/playlist?list=PLwi903AXkHEvjcLyNydPVFixkHvEs4mi3).
 
 Colorblind-friendly palettes found [here](https://conceptviz.app/tools/colorblind-friendly-palettes), and my created palettes were tested using their checker.
+
+[Settings icon](https://icons8.com/icon/2969/settings) by Icons8.
