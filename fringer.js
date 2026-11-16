@@ -1427,7 +1427,7 @@ async function startOrResumeMusic() {
 
 //suspends context when input is true or stops current music track
 function pauseMusic(suspend) {
-    if (currentTrack.length > 0) {
+    if (currentTrack.length > 1) {
          if (!gameOver && suspend) {
             //not game over: normal pause
             audioCtx.suspend();
