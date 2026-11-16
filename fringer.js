@@ -45,6 +45,10 @@ let candlesThisStage = 0;
 let paintbrushOn = false;
 let levelsUntilNextPaintbrush = 0; //resets every 3 stages
 
+//load image on page load
+const paintbrushImage = new Image();
+paintbrushImage.src = 'img/paintbrush.png';
+
 //buttons
 const pauseIconPath = 'M6 2h4v16H6zM14 2h4v16h-4z'; //svg paths provided by copilot
 const playIconPath = 'M7 2v16l12-8z';
@@ -479,7 +483,6 @@ function originalStage(level) {
 //returns 3 with input prob if sparkles are allowed this pushdown
 function getSparkleLevel(prob) {
     if (pushes > 0 && pushes < 10) {
-        //console.log('prob = ', prob.toString());
         if (Math.random() < prob) {
             return 3;
         }
@@ -489,17 +492,17 @@ function getSparkleLevel(prob) {
 
 //pushes down all the knots & forms new ones at the top
 //game over if a knot reaches the bottom
-//onscreen is true if push happening during level (instead of during setup)
+//onscreen is true if push happening during level (instead of during setup or paintbrush use)
 function pushDown (onscreen = false) {
-    //track visible pushDowns
+    //actions only taken while game is running
     if (onscreen) {
         pushes++;
+        
+        //remove candle rope if relevant
+        burnCandle();
 
-        //only play sound effects when onscreen
         playSoundEffect(soundEffects.pushDown);
     }
-    //remove candle rope if relevant
-    burnCandle();
 
     //remove first segment from each rope's path
     ropes.forEach(rope => {
@@ -867,7 +870,6 @@ function drawLoomAndText(newHighScore = false) {
 
 //draw pause menu: current level info and input message
 function drawPause(message) {
-    console.log('drawPause');
     clearCanvas();
     drawLoomAndText();
 
@@ -1164,8 +1166,6 @@ function activatePaintbrush() {
 
 //draws the paintbrush in the bottom right corner
 function drawPaintbrush() {
-    const paintbrushImage = new Image();
-    paintbrushImage.src = 'img/paintbrush.png';
     let buffer = 20; //space between paintbrush and edge of canvas
     ctx.drawImage(paintbrushImage, canvas.width - buffer - paintbrushImage.width, canvas.height - buffer - paintbrushImage.height);
 }
