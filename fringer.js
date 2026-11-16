@@ -283,6 +283,11 @@ function newGame(inputLevel = settings.startLevel) {
 
 //twists the two ropes under the cursor and adds/removes a knot if necessary
 function twist() {
+    //no twisting on bottom row--just for visualization
+    if (cursorRow === 0) {
+        return;
+    }
+
     //ropes switch starting columns
     var temp = ropes[cursorCol];
     ropes[cursorCol] = ropes[cursorCol + 1];
@@ -381,11 +386,6 @@ function comb() {
         //adjust cursor col if ropes have been removed but still exist
         cursorCol = Math.min(cursorCol, ropes.length - 2);
         cursorRow = findCursorRow(cursorCol);
-
-        //don't let cursor be pushed off board
-        if (cursorRow < 0) {
-            moveLeft();
-        }
     }
 
     drawGame();
@@ -476,6 +476,17 @@ function originalStage(level) {
     return level%3 + 1;
 }
 
+//returns 3 with input prob if sparkles are allowed this pushdown
+function getSparkleLevel(prob) {
+    if (pushes > 0 && pushes < 10) {
+        //console.log('prob = ', prob.toString());
+        if (Math.random() < prob) {
+            return 3;
+        }
+    }
+    return 0;
+}
+
 //pushes down all the knots & forms new ones at the top
 //game over if a knot reaches the bottom
 //onscreen is true if push happening during level (instead of during setup)
@@ -499,11 +510,18 @@ function pushDown (onscreen = false) {
     //decrease row for each knot
     knots.forEach(knot => {
         knot.row--;
-        if (knot.row < 0) {
+
+        //any knot can have a sparkle but it's more likely close to the top
+        if (onscreen && knot.sparkles === -1) { //hasn't had sparkles on it yet
+            let denom = 10 * (numRows - knot.row);
+            knot.sparkles = getSparkleLevel(1/denom);
+        }
+
+        //check for knots at/near bottom
+        if (knot.row === 0) {
             //GAME OVER!
-            handleGameOver();
-            return;
-        } else if (knot.row == 0) {
+            handleGameOver(); // set game over & then continue pushing down to draw final board
+        } else if (knot.row === 1 && !gameOver) {
             //play warning sound when about to lose
             playSoundEffect(soundEffects.warning);
         }
@@ -514,19 +532,6 @@ function pushDown (onscreen = false) {
 
     //adjust cursor row
     cursorRow = findCursorRow(cursorCol);
-    
-    //don't let cursor be pushed off board-- move whichever direction has space
-    if (cursorRow < 0 && ropes.length > 0) {
-        moveLeft();
-        if (cursorRow < 0) {
-            moveRight();
-        }
-    }
-
-    //cursor cannot move anywhere: game over
-    if (cursorRow < 0) {
-        handleGameOver();
-    }
 }
 
 //helper. twists the tops of the ropes to add knots at random
@@ -560,13 +565,13 @@ function twistRopeTops(addSparkles) {
                 var knotDir = 'right';
                 var knotColor = leftRope.color;
             }
-
-            //sparkles appear on new knots 
-            let sparkle = 0;
-            if (addSparkles && pushes > 2 && pushes < 10) { //TODO: check against original game
-                if (Math.random() < 1/3) {
-                    sparkle = 3;
-                }
+ 
+            //sparkle = -1 means the knot has never had a sparkle
+            //sparkel = 0 means the knot had a sparkle that the user missed
+            let sparkle = -1;
+            //add sparkles to new knots
+            if (addSparkles) {
+                sparkle = getSparkleLevel(1/7);
             }
 
             let newKnot = {col: i, row: numRows - 1, direction: knotDir, topColor: knotColor, sparkles: sparkle};
@@ -614,8 +619,6 @@ function handleGameOver() {
     } else {
         playSoundEffect(soundEffects.gameOver);
     }
-
-    drawGameOver();
 }
 
 //saves score to local storage if higher than saved one, returns true if so
@@ -648,8 +651,8 @@ function drawGameOver() {
 
 //draw full canvas
 function drawGame() {
-    //ropes drawn during game over are undefined
-    if (!gameRunning) {
+    //don't draw during pause screen
+    if (!gameRunning && !gameOver) {
         return;
     }
 
@@ -724,22 +727,26 @@ function drawGame() {
     //draw sparkles on each knot if relevant
     drawSparkles();
 
-    //draw cursor
-    ctx.beginPath();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'white';
-    if (cursorLeft) {
-        ctx.moveTo(coltoX(cursorCol), rowtoY(cursorRow+1));
-        ctx.lineTo(coltoX(cursorCol + 1), rowtoY(cursorRow));
-    } else {
-        ctx.moveTo(coltoX(cursorCol + 1), rowtoY(cursorRow+1));
-        ctx.lineTo(coltoX(cursorCol), rowtoY(cursorRow));
+    //draw cursor unless on gameover screen
+    if (!gameOver) {
+        ctx.beginPath();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'white';
+        if (cursorLeft) {
+            ctx.moveTo(coltoX(cursorCol), rowtoY(cursorRow+1));
+            ctx.lineTo(coltoX(cursorCol + 1), rowtoY(cursorRow));
+        } else {
+            ctx.moveTo(coltoX(cursorCol + 1), rowtoY(cursorRow+1));
+            ctx.lineTo(coltoX(cursorCol), rowtoY(cursorRow));
+        }
+        ctx.stroke();
     }
-    ctx.stroke();
 
     //draw column indicator beneath loom
     //faces in direction of cursor
     ctx.beginPath();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'white';
     let counterClockwise = true;
     if (cursorLeft) {
         counterClockwise = false;
@@ -776,6 +783,11 @@ function drawGame() {
     if (paintbrushOn) {
         drawPaintbrush();
     }
+
+    //if drawing the gameover board: draw the game over
+    if (gameOver) {
+        drawGameOver();
+    }
 }
 
 function clearCanvas() {
@@ -795,8 +807,8 @@ function drawLoomAndText(newHighScore = false) {
     ctx.moveTo(loomBuffer, loomHeight);
     ctx.lineTo(canvas.width-loomBuffer, loomHeight);
     ctx.stroke();    
-    ctx.moveTo(loomBuffer, rowtoY(0));
-    ctx.lineTo(canvas.width-loomBuffer, rowtoY(0));
+    ctx.moveTo(loomBuffer, rowtoY(1));
+    ctx.lineTo(canvas.width-loomBuffer, rowtoY(1));
     ctx.stroke();
     
     //all lable text in this style
@@ -855,6 +867,7 @@ function drawLoomAndText(newHighScore = false) {
 
 //draw pause menu: current level info and input message
 function drawPause(message) {
+    console.log('drawPause');
     clearCanvas();
     drawLoomAndText();
 
@@ -917,7 +930,9 @@ function drawMessage(message, size, height) {
 //sparkles last for 3 pushes down
 function updateSparkles() {
     knots.forEach(knot => {
-        knot.sparkles--;
+        if (knot.sparkles > 0) {
+            knot.sparkles--;
+        }
     });
 }
 
@@ -962,7 +977,7 @@ function drawSparkles() {
 function lightCandle() {
     //candle only lights when already unlit, after first push, starting at level 2-2
     //only lights candlesPerStage times per level
-    if (settings.bonusesOn && !candleOn && pushes > 0 && level >= 4 && candlesThisStage < candlesPerStage) {
+    if (settings.bonusesOn && !candleOn && pushes > 0 && level >= 4 && candlesThisStage < candlesPerStage && gameRunning) {
         //don't light candle if it was just turned off        
         if (candlesThisStage > 0 && pushes - candleStart < 4) {
             return;
@@ -1136,7 +1151,7 @@ function burnCandle(){
 //activates the paintbrush bonus if appropriate
 function activatePaintbrush() { 
     //paintbrush starts at level 3-1
-    if (settings.bonusesOn && !paintbrushOn && pushes >= 1 && level >= 6 && levelsUntilNextPaintbrush < 1) {
+    if (settings.bonusesOn && !paintbrushOn && pushes >= 1 && level >= 6 && levelsUntilNextPaintbrush < 1 && gameRunning) {
         //appears randomly
         if (Math.random() < 1/5) {
             paintbrushOn = true;
