@@ -523,7 +523,8 @@ function pushDown (onscreen = false) {
         //check for knots at/near bottom
         if (knot.row === 0) {
             //GAME OVER!
-            handleGameOver(); // set game over & then continue pushing down to draw final board
+            handleGameOver();
+            return; // final push down does not need new knots
         } else if (knot.row === 1 && !gameOver) {
             //play warning sound when about to lose
             playSoundEffect(soundEffects.warning);
@@ -608,13 +609,10 @@ function handleGameOver() {
     //gain 30 points per unused boost
     score += 30 * numBoosts;
 
-    //clear text area
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, 70);
-
+    //redraw game after last pushdown
     //update high score & redraw text accordingly
     let scoreUpdated = updateHighScore();
-    drawLoomAndText(scoreUpdated);
+    drawGame(scoreUpdated);
 
     //play appropriate sound effect
     if (scoreUpdated) {
@@ -653,7 +651,7 @@ function drawGameOver() {
 }
 
 //draw full canvas
-function drawGame() {
+function drawGame(newHighScore = false) {
     //don't draw during pause screen
     if (!gameRunning && !gameOver) {
         return;
@@ -777,7 +775,7 @@ function drawGame() {
     }
 
     //display text
-    drawLoomAndText();
+    drawLoomAndText(newHighScore);
 
     //draw bonuses
     if (candleOn) {
