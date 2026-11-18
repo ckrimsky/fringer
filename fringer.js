@@ -33,6 +33,7 @@ let numBoosts = 0;
 const maxBoosts = 20;
 let level = 0;
 let score = 0;
+let newHighScore = false; // whether we draw the high score in red text
 let pushes = 0; //the number of times pushDown has been called this level
 
 //bonuses
@@ -264,6 +265,7 @@ function newGame(inputLevel = settings.startLevel) {
     level = inputLevel;
     numBoosts = 0;
     score = 0;
+    newHighScore = false;
 
     //reset paintbrush (candle reset in initLevel)
     paintbrushOn = false;
@@ -523,8 +525,7 @@ function pushDown (onscreen = false) {
         //check for knots at/near bottom
         if (knot.row === 0) {
             //GAME OVER!
-            handleGameOver();
-            return; // final push down does not need new knots
+            handleGameOver(); //continue pushing down all the knots
         } else if (knot.row === 1 && !gameOver) {
             //play warning sound when about to lose
             playSoundEffect(soundEffects.warning);
@@ -609,13 +610,11 @@ function handleGameOver() {
     //gain 30 points per unused boost
     score += 30 * numBoosts;
 
-    //redraw game after last pushdown
-    //update high score & redraw text accordingly
-    let scoreUpdated = updateHighScore();
-    drawGame(scoreUpdated);
+    //update high score 
+    newHighScore = updateHighScore();
 
     //play appropriate sound effect
-    if (scoreUpdated) {
+    if (newHighScore) {
         playSoundEffect(soundEffects.highScore);
     } else {
         playSoundEffect(soundEffects.gameOver);
@@ -775,7 +774,7 @@ function drawGame(newHighScore = false) {
     }
 
     //display text
-    drawLoomAndText(newHighScore);
+    drawLoomAndText();
 
     //draw bonuses
     if (candleOn) {
