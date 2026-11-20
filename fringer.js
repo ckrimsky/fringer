@@ -650,7 +650,7 @@ function drawGameOver() {
 }
 
 //draw full canvas
-function drawGame(newHighScore = false) {
+function drawGame() {
     //don't draw during pause screen
     if (!gameRunning && !gameOver) {
         return;
@@ -798,7 +798,7 @@ function clearCanvas() {
 
 //draws the loom, level, score, high score
 //if there's a new high score, draw it in red
-function drawLoomAndText(newHighScore = false) {
+function drawLoomAndText() {
     //draw loom (lines at top & bottom of ropes)
     let loomBuffer = 60;
     ctx.beginPath();
